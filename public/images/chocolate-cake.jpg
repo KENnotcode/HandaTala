@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#fef3c7"/>
+  <circle cx="200" cy="120" r="50" fill="#fde68a"/>
+  <ellipse cx="200" cy="180" rx="60" ry="30" fill="#fcd34d"/>
+  <text x="200" y="260" font-family="system-ui" font-size="14" fill="#92400e" text-anchor="middle">Food Image</text>
+</svg>
