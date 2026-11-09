@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { InventoryItem, MenuItem } from '@/types';
 import { inventoryService } from '@/services/inventoryService';
 import { menuService } from '@/services/menuService';
+import { mockInventory } from '@/data/mockInventory';
 
 interface InventoryState {
   inventory: InventoryItem[];
@@ -20,7 +21,7 @@ interface InventoryState {
 }
 
 export const useInventoryStore = create<InventoryState>((set, get) => ({
-  inventory: [],
+  inventory: [...mockInventory],
   menuItems: [],
   isLoading: false,
   error: null,
@@ -101,7 +102,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
   isAvailable: (menuItemId: string) => {
     const inv = get().inventory.find((i) => i.menuItemId === menuItemId);
-    return inv?.isAvailable && (inv?.stock ?? 0) > 0;
+    return Boolean(inv?.isAvailable && (inv?.stock ?? 0) > 0);
   },
 
   isLowStock: (menuItemId: string) => {

@@ -1,7 +1,7 @@
 import { Order } from '@/types';
 import { motion } from 'framer-motion';
-import { ChefHat, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { Button, Badge, Card } from '@/components/ui';
+import { ChefHat, Truck, CheckCircle, AlertCircle } from 'lucide-react';
+import { Button, Badge } from '@/components/ui';
 import { OrderStatus } from '@/components/order';
 import { formatDate } from '@/utils/format';
 import { cn } from '@/utils/cn';
@@ -12,7 +12,17 @@ interface QueueOrderCardProps {
   isActive?: boolean;
 }
 
-const statusConfig = {
+type StatusConfig = {
+  icon: typeof ChefHat;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  nextStatus?: 'Ready for Pickup' | 'Completed';
+  nextLabel?: string;
+  nextIcon?: typeof Truck;
+};
+
+const statusConfig: Record<'Preparing' | 'Ready for Pickup' | 'Completed', StatusConfig> = {
   Preparing: { 
     icon: ChefHat, 
     color: 'blue', 
@@ -60,7 +70,7 @@ export function QueueOrderCard({ order, onStatusChange, isActive = true }: Queue
     >
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0', `bg-${config.color}-100 dark:bg-${config.color}-900/30 text-${config.color}-600 dark:text-${config.color}-400`)}>
+          <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center shrink-0', `bg-${config.color}-100 dark:bg-${config.color}-900/30 text-${config.color}-600 dark:text-${config.color}-400`)}>
             <Icon className="w-6 h-6" />
           </div>
           <div className="min-w-0">
@@ -116,7 +126,7 @@ export function QueueOrderCard({ order, onStatusChange, isActive = true }: Queue
         </div>
       )}
 
-      {config.nextStatus && (
+      {config.nextStatus && config.nextIcon && config.nextLabel && (
         <Button
           onClick={() => onStatusChange(order.id, config.nextStatus!)}
           fullWidth

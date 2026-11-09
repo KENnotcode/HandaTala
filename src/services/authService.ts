@@ -33,7 +33,7 @@ export const authService = {
 
     return {
       success: false,
-      data: null as any,
+      data: null,
       error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
     };
   },

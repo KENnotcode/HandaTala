@@ -1,7 +1,6 @@
 import { Order, OrderStatus } from '@/types';
 import { motion } from 'framer-motion';
-import { ChefHat, Truck, CheckCircle, Clock } from 'lucide-react';
-import { Badge, Card } from '@/components/ui';
+import { Badge } from '@/components/ui';
 import { cn } from '@/utils/cn';
 import { QueueOrderCard } from './QueueOrderCard';
 
@@ -38,7 +37,7 @@ export function QueueColumn({
 
   return (
     <motion.div
-      className="flex-1 min-w-[300px] max-w-[400px] flex flex-col"
+      className="flex-1 min-w-75 max-w-100 flex flex-col"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
@@ -61,18 +60,17 @@ export function QueueColumn({
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {orders.length > 0 ? (
-          orders.map((order, index) => (
+          orders.map((order) => (
             <QueueOrderCard
               key={order.id}
               order={order}
               onStatusChange={onStatusChange}
               isActive={status !== 'Completed'}
-              style={{ transitionDelay: `${index * 50}ms` }}
             />
           ))
         ) : (
           <motion.div
-            className="flex flex-col items-center justify-center h-full min-h-[200px] text-center px-4"
+            className="flex flex-col items-center justify-center h-full min-h-50 text-center px-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >

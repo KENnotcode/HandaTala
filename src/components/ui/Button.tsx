@@ -1,5 +1,4 @@
 import { ButtonHTMLAttributes, forwardRef } from 'react';
-import { motion } from 'framer-motion';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
@@ -51,10 +50,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const widthStyles = fullWidth ? 'w-full' : '';
 
     return (
-      <motion.button
+      <button
         ref={ref}
         className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${widthStyles} ${className}`}
-        whileTap={{ scale: 0.98 }}
         disabled={disabled || isLoading}
         {...props}
       >
@@ -82,12 +80,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           </svg>
         ) : (
           <>
-            {leftIcon && <span className="flex-shrink-0">{leftIcon}</span>}
+            {leftIcon && <span className="shrink-0">{leftIcon}</span>}
             {children}
-            {rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}
+            {rightIcon && <span className="shrink-0">{rightIcon}</span>}
           </>
         )}
-      </motion.button>
+      </button>
     );
   }
 );

@@ -1,8 +1,11 @@
 import { CartItem as CartItemType } from '@/types';
-import { motion, useState } from 'react';
+import { motion } from 'framer-motion';
+import Image from 'next/image';
+import { useState } from 'react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
-import { Button, Badge } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { formatPrice } from '@/utils/format';
+import { mockMenuItems } from '@/data/mockMenu';
 
 interface CartItemProps {
   item: CartItemType;
@@ -13,6 +16,7 @@ interface CartItemProps {
 
 export function CartItem({ item, onQuantityChange, onRemove, onNotesChange }: CartItemProps) {
   const [showNotes, setShowNotes] = useState(false);
+  const menuItem = mockMenuItems.find((menuItem) => menuItem.id === item.menuItemId);
 
   return (
     <motion.div
@@ -22,10 +26,22 @@ export function CartItem({ item, onQuantityChange, onRemove, onNotesChange }: Ca
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
     >
-      <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden">
-        <div className="w-full h-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30 flex items-center justify-center">
-          <span className="text-2xl">🍽️</span>
-        </div>
+      <div className="w-16 h-16 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        {menuItem ? (
+          <Image
+            src={menuItem.image}
+            alt={menuItem.name}
+            width={64}
+            height={64}
+            sizes="64px"
+            unoptimized
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-linear-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30 flex items-center justify-center">
+            <span className="text-2xl">🍽️</span>
+          </div>
+        )}
       </div>
       
       <div className="flex-1 min-w-0 flex flex-col">

@@ -1,33 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, Filter, Eye, MoreVertical, Download } from 'lucide-react';
+import { RefreshCw, Download } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin';
 import { OrderTable } from '@/components/admin';
-import { Button, Badge, Card } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { orderService } from '@/services/orderService';
-import { formatPrice, formatDate } from '@/utils/format';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
-import { OrderStatus } from '@/types';
+import { Order, OrderStatus } from '@/types';
+import { useRouter } from 'next/navigation';
 
 export default function AdminOrdersPage() {
-  const { isAdmin, checkAuth } = useAuthStore();
-  const [orders, setOrders] = useState<any[]>([]);
+  const { isAdmin, isLoading: authLoading, checkAuth } = useAuthStore();
+  const router = useRouter();
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
 
-  useEffect(() => {
-    checkAuth();
-    if (!isAdmin) {
-      window.location.href = '/admin/login';
-      return;
-    }
-    fetchOrders();
-  }, [checkAuth, isAdmin]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await orderService.getOrders();
@@ -39,10 +31,28 @@ export default function AdminOrdersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleViewOrder = (order: any) => {
-    window.location.href = `/order/${order.trackingId}`;
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!isAdmin) {
+        router.push('/admin/login');
+        return;
+      }
+      const timeoutId = window.setTimeout(() => {
+        void fetchOrders();
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [authLoading, isAdmin, router, fetchOrders]);
+
+  const handleViewOrder = (order: Order) => {
+    router.push(`/order/${order.trackingId}`);
   };
 
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {

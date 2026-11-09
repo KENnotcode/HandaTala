@@ -1,5 +1,4 @@
 import { HTMLAttributes, forwardRef } from 'react';
-import { motion } from 'framer-motion';
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline';

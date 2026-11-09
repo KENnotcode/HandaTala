@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CartItem, MenuItem } from '@/types';
-import { menuService } from '@/services/menuService';
 
 interface CartState {
   items: CartItem[];

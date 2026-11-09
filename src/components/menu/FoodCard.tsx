@@ -1,6 +1,7 @@
 import { MenuItem } from '@/types';
 import { motion } from 'framer-motion';
-import { ShoppingCart, AlertCircle, CheckCircle } from 'lucide-react';
+import Image from 'next/image';
+import { ShoppingCart } from 'lucide-react';
 import { Button, Badge, Card, Skeleton } from '@/components/ui';
 import { useCartStore } from '@/store/cartStore';
 import { useInventoryStore } from '@/store/inventoryStore';
@@ -52,11 +53,12 @@ export function FoodCard({ item, isSkeleton = false, onAdd }: FoodCardProps) {
     >
       <Card className="overflow-hidden flex flex-col h-full relative" padding="none" hover>
         <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800">
-          <img
+          <Image
             src={item.image}
             alt={item.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-            loading="lazy"
           />
           {item.isFeatured && (
             <Badge variant="warning" className="absolute top-2 left-2" dot>

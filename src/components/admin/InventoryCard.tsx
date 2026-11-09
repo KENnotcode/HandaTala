@@ -1,13 +1,14 @@
 import { InventoryItem } from '@/types';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Plus, Minus, Edit, Eye, EyeOff } from 'lucide-react';
-import { Button, Badge, Card } from '@/components/ui';
+import { Button, Badge, Input } from '@/components/ui';
 import { cn } from '@/utils/cn';
 import { formatPrice } from '@/utils/format';
 
 interface InventoryCardProps {
   item: InventoryItem;
-  menuItem: { name: string; category: string; price: number; image: string };
+  menuItem: { name: string; category: string; price: number; image: string; preparationTime?: number };
   onUpdateStock: (menuItemId: string, quantity: number) => void;
   onSetAvailability: (menuItemId: string, isAvailable: boolean) => void;
   onEdit: () => void;
@@ -38,9 +39,11 @@ export function InventoryCard({ item, menuItem, onUpdateStock, onSetAvailability
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
-        <img
+        <Image
           src={menuItem.image}
           alt={menuItem.name}
+          fill
+          sizes="(max-width: 768px) 100vw, 33vw"
           className="w-full h-full object-cover"
         />
         <div className="absolute top-2 left-2 right-2 flex justify-between">

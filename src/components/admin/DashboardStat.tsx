@@ -1,3 +1,4 @@
+import { CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui';
 import { cn } from '@/utils/cn';
@@ -12,6 +13,7 @@ interface DashboardStatProps {
   };
   color?: 'amber' | 'blue' | 'green' | 'red' | 'purple';
   className?: string;
+  style?: CSSProperties;
 }
 
 export function DashboardStat({ 
@@ -20,7 +22,8 @@ export function DashboardStat({
   icon, 
   trend, 
   color = 'amber',
-  className 
+  className,
+  style
 }: DashboardStatProps) {
   const colorStyles = {
     amber: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
@@ -33,6 +36,7 @@ export function DashboardStat({
   return (
     <motion.div
       className={cn('p-5', className)}
+      style={style}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >

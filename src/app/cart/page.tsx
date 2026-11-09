@@ -3,14 +3,15 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowLeft, Trash2, ShoppingBag } from 'lucide-react';
-import { Button, Card, Badge, EmptyState } from '@/components/ui';
+import { Button, Card, EmptyState } from '@/components/ui';
 import { CartDrawer, CartButton } from '@/components/cart';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/utils/format';
-import { cn } from '@/utils/cn';
+import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
   const { items, clearCart, getItemCount, getSubtotal, getTotal, updateQuantity, removeItem, updateNotes } = useCartStore();
+  const router = useRouter();
   const itemCount = getItemCount();
   const subtotal = getSubtotal();
   const total = getTotal();
@@ -30,7 +31,7 @@ export default function CartPage() {
             description="Looks like you haven't added any items yet. Browse our menu and find something delicious!"
             action={{
               label: 'Browse Menu',
-              onClick: () => window.location.href = '/menu',
+              onClick: () => router.push('/menu'),
               variant: 'primary'
             }}
           />
@@ -79,8 +80,8 @@ export default function CartPage() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                   >
-                    <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                      <div className="w-full h-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30 flex items-center justify-center">
+                    <div className="w-20 h-20 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                      <div className="w-full h-full bg-linear-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30 flex items-center justify-center">
                         <span className="text-2xl">🍽️</span>
                       </div>
                     </div>
@@ -193,7 +194,7 @@ export default function CartPage() {
                 </Button>
               </Link>
               
-              <Button variant="outline" fullWidth onClick={() => window.location.href = '/menu'}>
+              <Button variant="outline" fullWidth onClick={() => router.push('/menu')}>
                 Continue Shopping
               </Button>
               

@@ -1,4 +1,4 @@
-import { InventoryItem, MenuItem, ServiceResponse } from '@/types';
+import { InventoryItem, ServiceResponse } from '@/types';
 import { mockInventory } from '@/data/mockInventory';
 import { menuService } from './menuService';
 

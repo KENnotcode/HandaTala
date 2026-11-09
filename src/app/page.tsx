@@ -8,10 +8,9 @@ import { FoodCard } from '@/components/menu';
 import { CartButton } from '@/components/cart';
 import { mockMenuItems } from '@/data/mockMenu';
 import { useInventoryStore } from '@/store/inventoryStore';
-import { cn } from '@/utils/cn';
 
 export default function LandingPage() {
-  const { isAvailable, getStock, isLowStock } = useInventoryStore();
+  const { isAvailable } = useInventoryStore();
   
   const featuredItems = mockMenuItems.filter(item => item.isFeatured && isAvailable(item.id)).slice(0, 4);
   const popularItems = mockMenuItems.filter(item => isAvailable(item.id)).slice(0, 6);
@@ -80,12 +79,12 @@ export default function LandingPage() {
                   Enjoy your meal.
                 </h1>
                 <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-xl">
-                  HandaTala is your canteen companion. Browse today's menu, place your order, and pick it up when ready. No more waiting in line!
+                  HandaTala is your canteen companion. Browse todays menu, place your order, and pick it up when ready. No more waiting in line!
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link href="/menu">
                     <Button size="lg" className="w-full sm:w-auto" leftIcon={<Utensils className="w-5 h-5" />}>
-                      View Today's Menu
+                      View Todays Menu
                     </Button>
                   </Link>
                   <Link href="/orders">
@@ -103,7 +102,7 @@ export default function LandingPage() {
                 className="relative"
               >
                 <div className="relative aspect-square max-w-md mx-auto">
-                  <div className="absolute inset-0 bg-gradient-to-br from-amber-200 to-amber-400 rounded-3xl opacity-20 blur-2xl" />
+                  <div className="absolute inset-0 bg-linear-to-br from-amber-200 to-amber-400 rounded-3xl opacity-20 blur-2xl" />
                   <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
                     <div className="space-y-4">
                       {featuredItems.slice(0, 3).map((item, index) => (
@@ -114,8 +113,8 @@ export default function LandingPage() {
                           transition={{ delay: 0.4 + index * 0.1 }}
                           className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl"
                         >
-                          <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
-                            <div className="w-full h-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30" />
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0">
+                            <div className="w-full h-full bg-linear-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
@@ -147,7 +146,7 @@ export default function LandingPage() {
                 Simple ordering in 3 steps
               </h2>
               <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                From browsing to pickup, we've made the process seamless
+                From browsing to pickup, weve made the process seamless
               </p>
             </motion.div>
 
@@ -186,7 +185,7 @@ export default function LandingPage() {
                 viewport={{ once: true }}
               >
                 <Badge variant="default" className="mb-4" dot>
-                  Today's Specials
+                  Todays Specials
                 </Badge>
                 <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
                   Featured Today

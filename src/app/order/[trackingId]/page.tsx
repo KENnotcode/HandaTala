@@ -8,18 +8,17 @@ import { Button, Card, Badge } from '@/components/ui';
 import { CartButton } from '@/components/cart';
 import { orderService } from '@/services/orderService';
 import { OrderStatus, OrderTimeline } from '@/components/order';
-import { Receipt } from '@/components/order';
 import { formatPrice, formatDate } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { Order } from '@/types';
 
 export default function OrderTrackingPage() {
   const searchParams = useSearchParams();
   const trackingId = searchParams.get('trackingId');
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showReceipt, setShowReceipt] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -81,7 +80,7 @@ export default function OrderTrackingPage() {
             Order Not Found
           </h3>
           <p className="text-gray-500 dark:text-gray-400 mb-6">
-            We couldn't find an order with that tracking number. Please check and try again.
+            We couldn&apos;t find an order with that tracking number. Please check and try again.
           </p>
           <Link href="/orders">
             <Button variant="primary" leftIcon={<ArrowLeft className="w-4 h-4" />}>
@@ -176,7 +175,7 @@ export default function OrderTrackingPage() {
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Items</h3>
                   <ul className="space-y-3" role="list">
-                    {order.items.map((item: any, index: number) => (
+                    {order.items.map((item, index) => (
                       <motion.li
                         key={index}
                         initial={{ opacity: 0, x: -20 }}
@@ -222,7 +221,6 @@ export default function OrderTrackingPage() {
                     {statusOrder.map((status, index) => {
                       const isPast = index < currentIndex;
                       const isCurrent = index === currentIndex;
-                      const isFuture = index > currentIndex;
                       
                       return (
                         <motion.div
@@ -233,7 +231,7 @@ export default function OrderTrackingPage() {
                           className="flex items-center gap-4"
                         >
                           <div className={cn(
-                            'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
+                            'w-10 h-10 rounded-full flex items-center justify-center shrink-0',
                             isPast ? 'bg-green-100 dark:bg-green-900/30 text-green-600' :
                             isCurrent ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 animate-pulse' :
                             'bg-gray-100 dark:bg-gray-800 text-gray-400'

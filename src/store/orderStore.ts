@@ -16,7 +16,7 @@ interface OrderState {
   clearError: () => void;
 }
 
-export const useOrderStore = create<OrderState>((set, get) => ({
+export const useOrderStore = create<OrderState>((set) => ({
   orders: [],
   currentOrder: null,
   isLoading: false,

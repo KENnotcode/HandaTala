@@ -72,7 +72,7 @@ export function Drawer({
           aria-labelledby={title ? 'drawer-title' : undefined}
         >
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
               {title && (
                 <h2 id="drawer-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {title}

@@ -1,8 +1,7 @@
 import { Order, OrderStatus } from '@/types';
 import { motion } from 'framer-motion';
 import { Eye, MoreVertical, Filter } from 'lucide-react';
-import { Button, Badge, Modal, Input } from '@/components/ui';
-import { cn } from '@/utils/cn';
+import { Button, Badge, Modal } from '@/components/ui';
 import { formatPrice, formatDate } from '@/utils/format';
 import { OrderStatus as OrderStatusComponent } from '@/components/order';
 import { useState } from 'react';
@@ -23,7 +22,6 @@ export function OrderTable({
   onFilterChange 
 }: OrderTableProps) {
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showStatusModal, setShowStatusModal] = useState<Order | null>(null);
 
   const statusOptions: { value: OrderStatus; label: string }[] = [

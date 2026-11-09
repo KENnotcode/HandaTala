@@ -1,4 +1,4 @@
-import { Order, Payment, ServiceResponse, PaymentMethod, PaymentStatus } from '@/types';
+import { Order, Payment, ServiceResponse, PaymentStatus } from '@/types';
 import { orderService } from './orderService';
 
 let payments: Payment[] = [];

@@ -3,16 +3,18 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowLeft, Clock, ChevronRight, RefreshCw } from 'lucide-react';
-import { Button, Card, Badge, EmptyState } from '@/components/ui';
+import { ArrowLeft, Clock, RefreshCw } from 'lucide-react';
+import { Button, Badge, EmptyState } from '@/components/ui';
 import { CartButton } from '@/components/cart';
 import { orderService } from '@/services/orderService';
 import { OrderCard } from '@/components/order';
-import { formatPrice, formatDate } from '@/utils/format';
 import { toast } from 'sonner';
+import { Order } from '@/types';
+import { useRouter } from 'next/navigation';
 
 export default function OrdersHistoryPage() {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -31,14 +33,6 @@ export default function OrdersHistoryPage() {
     };
     fetchOrders();
   }, []);
-
-  const statusColors: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-    'Preparing': 'info',
-    'Ready for Pickup': 'warning',
-    'Completed': 'success',
-    'Cancelled': 'danger',
-    'Pending Payment': 'warning',
-  };
 
   if (isLoading) {
     return (
@@ -98,7 +92,7 @@ export default function OrdersHistoryPage() {
               description="You haven't placed any orders yet. Browse our menu and place your first order!"
               action={{
                 label: 'Browse Menu',
-                onClick: () => window.location.href = '/menu',
+                onClick: () => router.push('/menu'),
                 variant: 'primary'
               }}
             />
@@ -114,7 +108,7 @@ export default function OrdersHistoryPage() {
                   <OrderCard
                     order={order}
                     variant="compact"
-                    onClick={() => window.location.href = `/order/${order.trackingId}`}
+                    onClick={() => router.push(`/order/${order.trackingId}`)}
                   />
                 </motion.div>
               ))}

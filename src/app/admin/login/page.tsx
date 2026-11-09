@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, Utensils, Shield } from 'lucide-react';
 import { Button, Input, Card } from '@/components/ui';
-import { authService } from '@/services/authService';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('admin@handatala.test');
@@ -14,6 +14,7 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +23,7 @@ export default function AdminLoginPage() {
     const success = await login(email, password);
     if (success) {
       toast.success('Welcome back!');
-      window.location.href = '/admin';
+      router.push('/admin');
     } else {
       toast.error('Invalid credentials');
     }

@@ -4,6 +4,7 @@ export interface MenuItem {
   description: string;
   category: string;
   price: number;
+  costPrice: number;
   image: string;
   stock: number;
   isAvailable: boolean;

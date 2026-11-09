@@ -16,7 +16,7 @@ export function CartSummary({ subtotal, itemCount, onCheckout, isEmpty = false }
           Your cart is empty
         </p>
         <p className="text-center text-sm text-gray-400 dark:text-gray-500 mb-4">
-          Browse today's menu and add something you like.
+          Browse today&apos;s menu and add something you like.
         </p>
         <Button variant="outline" fullWidth onClick={onCheckout}>
           Browse Menu

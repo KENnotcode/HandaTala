@@ -1,18 +1,18 @@
-import { InventoryItem } from '@/types';
-import { motion } from 'framer-motion';
-import { Plus, Minus, Edit, Trash2, Eye, EyeOff, MoreVertical } from 'lucide-react';
+import { InventoryItem, MenuItem } from '@/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import { Edit, Trash2, Eye, EyeOff, Check, X } from 'lucide-react';
 import { Button, Badge, Input, Modal } from '@/components/ui';
 import { cn } from '@/utils/cn';
-import { useInventoryStore } from '@/store/inventoryStore';
 import { formatPrice } from '@/utils/format';
 import { useState } from 'react';
 
 interface InventoryTableProps {
   items: InventoryItem[];
-  menuItemsMap: Map<string, { name: string; category: string; price: number; image: string }>;
+  menuItemsMap: Map<string, MenuItem>;
   onUpdateStock: (menuItemId: string, quantity: number) => void;
   onSetAvailability: (menuItemId: string, isAvailable: boolean) => void;
-  onEdit: (item: InventoryItem, menuItem: { name: string; category: string; price: number }) => void;
+  onEdit: (item: InventoryItem, menuItem: MenuItem) => void;
   onDelete: (menuItemId: string) => void;
 }
 
@@ -32,17 +32,6 @@ export function InventoryTable({
     onUpdateStock(menuItemId, editStock);
     setEditingId(null);
   };
-
-  const handleAdjustStock = (menuItemId: string, adjustment: number) => {
-    const item = items.find(i => i.menuItemId === menuItemId);
-    if (item) {
-      const newStock = Math.max(0, item.stock + adjustment);
-      onUpdateStock(menuItemId, newStock);
-    }
-  };
-
-  const menuItem = items[0];
-  const menuInfo = menuItemsMap.get(menuItem?.menuItemId || '');
 
   return (
     <div className="overflow-x-auto">
@@ -74,10 +63,12 @@ export function InventoryTable({
               >
                 <td className="p-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
-                      <img
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0">
+                      <Image
                         src={menuInfo?.image || '/images/placeholder.jpg'}
                         alt={menuInfo?.name || 'Food'}
+                        fill
+                        sizes="48px"
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -234,6 +225,3 @@ export function InventoryTable({
     </div>
   );
 }
-
-// Need to import Check, X
-import { Check, X } from 'lucide-react';

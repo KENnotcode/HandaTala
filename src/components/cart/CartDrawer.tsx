@@ -1,15 +1,17 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { Drawer } from '@/components/ui';
 import { CartItem } from './CartItem';
 import { CartSummary } from './CartSummary';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/utils/format';
+import { useRouter } from 'next/navigation';
 
 export function CartDrawer() {
-  const { items, isOpen, closeCart, getItemCount, getSubtotal, updateQuantity, removeItem, updateNotes, clearCart } = useCartStore();
+  const { items, isOpen, closeCart, getItemCount, getSubtotal, updateQuantity, removeItem, updateNotes } = useCartStore();
+  const router = useRouter();
   const itemCount = getItemCount();
   const subtotal = getSubtotal();
 
@@ -31,7 +33,7 @@ export function CartDrawer() {
                 Your cart is empty
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm">
-                Browse today's menu and add something you like.
+                Browse today&apos;s menu and add something you like.
               </p>
               <button
                 onClick={closeCart}
@@ -60,7 +62,7 @@ export function CartDrawer() {
                 itemCount={itemCount}
                 onCheckout={() => {
                   closeCart();
-                  window.location.href = '/checkout';
+                  router.push('/checkout');
                 }}
               />
             </>
@@ -72,7 +74,7 @@ export function CartDrawer() {
 }
 
 export function CartButton() {
-  const { isOpen, openCart, getItemCount, getSubtotal } = useCartStore();
+  const { openCart, getItemCount, getSubtotal } = useCartStore();
   const itemCount = getItemCount();
   const subtotal = getSubtotal();
 

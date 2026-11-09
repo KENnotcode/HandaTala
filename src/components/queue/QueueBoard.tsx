@@ -1,13 +1,12 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { ChefHat, Truck, CheckCircle, RefreshCw, Bell, Volume2, VolumeX } from 'lucide-react';
-import { Button, Card } from '@/components/ui';
+import { ChefHat, Truck, CheckCircle, RefreshCw, Volume2, VolumeX, Clock } from 'lucide-react';
+import { Button } from '@/components/ui';
 import { QueueColumn } from './QueueColumn';
 import { useQueueStore } from '@/store/queueStore';
 import { OrderStatus } from '@/types';
 import { cn } from '@/utils/cn';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function QueueBoard() {
   const { 
@@ -137,5 +136,3 @@ export function QueueBoard() {
     </div>
   );
 }
-
-import { useState } from 'react';

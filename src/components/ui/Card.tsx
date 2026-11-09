@@ -1,5 +1,4 @@
 import { HTMLAttributes, forwardRef } from 'react';
-import { motion } from 'framer-motion';
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'outlined' | 'elevated';
@@ -37,14 +36,13 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       : '';
 
     return (
-      <motion.div
+      <div
         ref={ref}
         className={`rounded-xl ${variantStyles[variant]} ${paddingStyles[padding]} ${hoverStyles} ${className}`}
-        whileHover={hover ? { y: -4, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' } : undefined}
         {...props}
       >
         {children}
-      </motion.div>
+      </div>
     );
   }
 );

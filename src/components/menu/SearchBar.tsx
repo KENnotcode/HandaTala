@@ -1,5 +1,5 @@
 import { Search, X } from 'lucide-react';
-import { motion, useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/utils/cn';
 import { Input } from '@/components/ui';
 
@@ -11,11 +11,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ value, onChange, placeholder = 'Search food...', className }: SearchBarProps) {
-  const [showClear, setShowClear] = useState(false);
-
-  useEffect(() => {
-    setShowClear(value.length > 0);
-  }, [value]);
+  const showClear = value.length > 0;
 
   const handleClear = () => {
     onChange('');

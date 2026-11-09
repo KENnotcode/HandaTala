@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Filter, X, Grid, List } from 'lucide-react';
-import { Button, Badge, Input, Card } from '@/components/ui';
-import { CategoryTabs, SearchBar, MenuGrid, FoodCard } from '@/components/menu';
-import { CartButton } from '@/components/cart';
+import { Button, Card } from '@/components/ui';
+import { SearchBar, MenuGrid, FoodCard } from '@/components/menu';
+import { CartButton, CartDrawer } from '@/components/cart';
 import { mockMenuItems, categories } from '@/data/mockMenu';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { cn } from '@/utils/cn';
@@ -15,20 +15,25 @@ export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const { isAvailable, getStock, isLowStock } = useInventoryStore();
+  const { fetchInventory, isAvailable } = useInventoryStore();
+
+  useEffect(() => {
+    fetchInventory();
+  }, [fetchInventory]);
 
   const filteredItems = useMemo(() => {
     return mockMenuItems.filter((item) => {
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            item.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = activeCategory === 'all' || item.category.toLowerCase().replace(' ', '-') === activeCategory;
+      const categoryId = item.category.toLowerCase().replace(/\s*&\s*/g, '-').replace(/\s+/g, '-');
+      const matchesCategory = activeCategory === 'all' || categoryId === activeCategory;
       const isAvail = isAvailable(item.id);
       return matchesSearch && matchesCategory && isAvail;
     });
   }, [searchQuery, activeCategory, isAvailable]);
 
   const availableCategories = useMemo(() => {
-    const cats = new Set(mockMenuItems.filter(isAvailable).map(item => item.category));
+    const cats = new Set(mockMenuItems.filter(item => isAvailable(item.id)).map(item => item.category));
     return Array.from(cats);
   }, [isAvailable]);
 
@@ -39,6 +44,7 @@ export default function MenuPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <CartButton />
+      <CartDrawer />
       
       <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -116,18 +122,11 @@ export default function MenuPage() {
           <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search food..." />
         </div>
 
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <CategoryTabs
-            categories={displayCategories}
-            activeCategory={activeCategory}
-            onChange={setActiveCategory}
-          />
-        </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          <aside className="lg:w-64 flex-shrink-0">
+          <aside className="lg:w-64 shrink-0">
             <Card className="sticky top-24 p-4">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Categories</h3>
               <nav className="space-y-1" aria-label="Category filter">

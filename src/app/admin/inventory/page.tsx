@@ -1,35 +1,35 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Download, Upload } from 'lucide-react';
+import { Plus, Search, Download, Upload } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin';
 import { InventoryTable } from '@/components/admin';
-import { Button, Input, Badge, Card, Modal } from '@/components/ui';
+import { Button, Input, Badge, Modal } from '@/components/ui';
 import { inventoryService } from '@/services/inventoryService';
 import { menuService } from '@/services/menuService';
-import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/store/authStore';
-import { cn } from '@/utils/cn';
 import { toast } from 'sonner';
 import { InventoryItem } from '@/types';
 import { MenuItem } from '@/types';
+import { useRouter } from 'next/navigation';
 
 export default function AdminInventoryPage() {
-  const { isAdmin, checkAuth } = useAuthStore();
+  const { isAdmin, isLoading: authLoading, checkAuth } = useAuthStore();
+  const router = useRouter();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'low' | 'out'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<{ inventory: InventoryItem; menu: MenuItem } | null>(null);
 
   const [newItem, setNewItem] = useState({
     name: '',
     description: '',
     category: 'Rice Meals',
     price: 0,
+    costPrice: 0,
     stock: 0,
     isAvailable: true,
     isFeatured: false,
@@ -39,14 +39,9 @@ export default function AdminInventoryPage() {
 
   useEffect(() => {
     checkAuth();
-    if (!isAdmin) {
-      window.location.href = '/admin/login';
-      return;
-    }
-    fetchData();
-  }, [checkAuth, isAdmin]);
+  }, [checkAuth]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [invResult, menuResult] = await Promise.all([
@@ -60,7 +55,21 @@ export default function AdminInventoryPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!isAdmin) {
+        router.push('/admin/login');
+        return;
+      }
+      const timeoutId = window.setTimeout(() => {
+        void fetchData();
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [authLoading, isAdmin, router, fetchData]);
 
   const menuItemsMap = useMemo(() => {
     const map = new Map();
@@ -115,12 +124,13 @@ export default function AdminInventoryPage() {
   };
 
   const handleEdit = (invItem: InventoryItem, menuItem: MenuItem) => {
-    setEditingItem({ inventory: invItem, menu: menuItem });
+    void invItem;
+    void menuItem;
   };
 
   const handleDelete = async (menuItemId: string) => {
     try {
-      const result = await inventoryService.updateStock(menuItemId, 0);
+      await inventoryService.updateStock(menuItemId, 0);
       await menuService.deleteMenuItem(menuItemId);
       setInventory(prev => prev.filter(item => item.menuItemId !== menuItemId));
       setMenuItems(prev => prev.filter(item => item.id !== menuItemId));
@@ -138,7 +148,7 @@ export default function AdminInventoryPage() {
         await inventoryService.updateStock(result.data.id, newItem.stock);
         toast.success('Item added successfully');
         setShowAddModal(false);
-        setNewItem({ name: '', description: '', category: 'Rice Meals', price: 0, stock: 0, isAvailable: true, isFeatured: false, preparationTime: 10, image: '/images/placeholder.jpg' });
+        setNewItem({ name: '', description: '', category: 'Rice Meals', price: 0, costPrice: 0, stock: 0, isAvailable: true, isFeatured: false, preparationTime: 10, image: '/images/placeholder.jpg' });
         fetchData();
       }
     } catch {
@@ -199,7 +209,12 @@ export default function AdminInventoryPage() {
                   <div className="flex items-center gap-3">
                     <select
                       value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value as any)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === 'all' || value === 'available' || value === 'low' || value === 'out') {
+                          setFilterStatus(value);
+                        }
+                      }}
                       className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
                     >
                       <option value="all">All Items</option>
@@ -331,4 +346,3 @@ export default function AdminInventoryPage() {
 }
 
 import { AnimatePresence } from 'framer-motion';
-import Link from 'next/link';

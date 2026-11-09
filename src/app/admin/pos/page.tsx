@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Plus, Minus, Trash2, CreditCard, Wallet, ArrowLeft, X } from 'lucide-react';
+import { Plus, Minus, Trash2, CreditCard, Wallet, X } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin';
 import { FoodCard } from '@/components/menu';
 import { Button, Badge, Card, Input, Modal } from '@/components/ui';
@@ -14,11 +15,13 @@ import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/utils/cn';
 import { toast } from 'sonner';
+import { CartItem, MenuItem, Order } from '@/types';
 
 export default function AdminPOSPage() {
-  const { isAdmin, checkAuth, user } = useAuthStore();
-  const { isAvailable, getStock } = useInventoryStore();
-  const [cart, setCart] = useState<Array<{ menuItemId: string; name: string; quantity: number; unitPrice: number; subtotal: number }>>([]);
+  const router = useRouter();
+  const { isAdmin, isLoading: authLoading, checkAuth, user } = useAuthStore();
+  const { isAvailable } = useInventoryStore();
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('cash');
@@ -26,17 +29,19 @@ export default function AdminPOSPage() {
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
-  const [lastOrder, setLastOrder] = useState<any>(null);
+  const [lastOrder, setLastOrder] = useState<Order | null>(null);
 
   const categories = ['all', 'rice-meals', 'meals', 'snacks', 'drinks', 'desserts'];
 
   useEffect(() => {
     checkAuth();
-    if (!isAdmin) {
-      window.location.href = '/admin/login';
-      return;
+  }, [checkAuth]);
+
+  useEffect(() => {
+    if (!authLoading && !isAdmin) {
+      router.push('/admin/login');
     }
-  }, [checkAuth, isAdmin]);
+  }, [authLoading, isAdmin, router]);
 
   const availableItems = useMemo(() => {
     return mockMenuItems.filter(item => isAvailable(item.id));
@@ -53,7 +58,7 @@ export default function AdminPOSPage() {
   const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const addToCart = (item: any) => {
+  const addToCart = (item: MenuItem) => {
     setCart(prev => {
       const existing = prev.find(i => i.menuItemId === item.id);
       if (existing) {
@@ -116,13 +121,14 @@ export default function AdminPOSPage() {
         notes
       );
 
-      if (newOrder) {
+      if (newOrder.success && newOrder.data) {
+        const order = newOrder.data;
         if (paymentMethod === 'online') {
-          await paymentService.initializeCheckout(newOrder);
+          await paymentService.initializeCheckout(order);
           // Simulate payment
           setTimeout(async () => {
-            await paymentService.simulatePaymentCallback(newOrder.id, true);
-            setLastOrder(newOrder);
+            await paymentService.simulatePaymentCallback(order.id, true);
+            setLastOrder(order);
             setShowReceipt(true);
             setCart([]);
             setCustomerName('');
@@ -131,7 +137,7 @@ export default function AdminPOSPage() {
             toast.success('Order completed!');
           }, 1000);
         } else {
-          setLastOrder(newOrder);
+          setLastOrder(order);
           setShowReceipt(true);
           setCart([]);
           setCustomerName('');
@@ -228,7 +234,7 @@ export default function AdminPOSPage() {
                 <Card className="sticky top-24 flex flex-col h-[calc(100vh-8rem)]">
                   <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Current Order</h2>
-                    <Badge variant="secondary">{itemCount} items</Badge>
+                    <Badge variant="default">{itemCount} items</Badge>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-4">
@@ -246,8 +252,8 @@ export default function AdminPOSPage() {
                             layout
                             className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl"
                           >
-                            <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                              <div className="w-full h-full bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30" />
+                            <div className="w-12 h-12 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                              <div className="w-full h-full bg-linear-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
@@ -420,4 +426,3 @@ export default function AdminPOSPage() {
 
 import { AnimatePresence } from 'framer-motion';
 import { Search, CheckCircle } from 'lucide-react';
-import Link from 'next/link';

@@ -26,7 +26,13 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [order, setOrder] = useState<{ trackingId: string } | null>(null);
 
-  const paymentMethods = [
+  const paymentMethods: Array<{
+    id: 'online' | 'counter';
+    label: string;
+    description: string;
+    icon: typeof CreditCard;
+    color: string;
+  }> = [
     {
       id: 'online',
       label: 'Pay Online',
@@ -86,7 +92,7 @@ export default function CheckoutPage() {
           toast.success('Order placed! Pay at counter when you pick up.');
         }
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to place order. Please try again.');
       setIsProcessing(false);
     }

@@ -2,12 +2,11 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Utensils, 
   Package, 
-  ShoppingCart, 
   List, 
   ChefHat,
   LogOut,
@@ -30,13 +29,14 @@ const navigation = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const { user, logout, isAdmin } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/admin/login';
+    router.push('/admin/login');
   };
 
   return (
@@ -80,7 +80,7 @@ export function AdminSidebar() {
               className="overflow-hidden whitespace-nowrap"
             >
               <Link href="/admin" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center shrink-0">
                   <Utensils className="w-5 h-5 text-white" />
                 </div>
                 <span className="font-bold text-xl text-gray-900 dark:text-white">HandaTala</span>
@@ -112,7 +112,7 @@ export function AdminSidebar() {
                   )}
                   onClick={() => setIsMobileOpen(false)}
                 >
-                  <item.icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                  <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
                   <motion.span
                     initial={false}
                     animate={{ opacity: isCollapsed ? 0 : 1, width: isCollapsed ? 0 : 'auto' }}
@@ -130,7 +130,7 @@ export function AdminSidebar() {
               'flex items-center gap-3 px-3 py-2 rounded-lg',
               isCollapsed ? 'justify-center' : 'justify-start'
             )}>
-              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
                 <Utensils className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               </div>
               <motion.div

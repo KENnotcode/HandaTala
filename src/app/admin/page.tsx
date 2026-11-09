@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { 
   Utensils, 
   Package, 
@@ -10,8 +11,6 @@ import {
   CheckCircle, 
   XCircle,
   Clock,
-  TrendingUp,
-  Users,
   CreditCard
 } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin';
@@ -21,11 +20,13 @@ import { orderService } from '@/services/orderService';
 import { inventoryService } from '@/services/inventoryService';
 import { formatPrice, formatDate } from '@/utils/format';
 import { useAuthStore } from '@/store/authStore';
-import { cn } from '@/utils/cn';
 import { toast } from 'sonner';
+import { Order } from '@/types';
+import { useRouter } from 'next/navigation';
 
 export default function AdminDashboardPage() {
-  const { isAdmin, checkAuth, user } = useAuthStore();
+  const { isAdmin, isLoading: authLoading, checkAuth, user } = useAuthStore();
+  const router = useRouter();
   const [stats, setStats] = useState({
     todayOrders: 0,
     preparing: 0,
@@ -35,19 +36,10 @@ export default function AdminDashboardPage() {
     soldOut: 0,
     totalRevenue: 0,
   });
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-    if (!isAdmin) {
-      window.location.href = '/admin/login';
-      return;
-    }
-    fetchDashboardData();
-  }, [checkAuth, isAdmin]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [ordersResult, inventoryStatsResult] = await Promise.all([
@@ -85,7 +77,27 @@ export default function AdminDashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!isAdmin) {
+        router.push('/admin/login');
+        return;
+      }
+      const timeoutId = window.setTimeout(() => {
+        void         queueMicrotask(() => {
+          void fetchDashboardData();
+        });
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [authLoading, isAdmin, router, fetchDashboardData]);
 
   const statCards = [
     {
@@ -135,7 +147,7 @@ export default function AdminDashboardPage() {
     },
   ];
 
-  if (!isAdmin) {
+  if (!isAdmin || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-pulse">Loading...</div>
@@ -229,7 +241,7 @@ export default function AdminDashboardPage() {
                                 </Badge>
                               </div>
                               <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                                {order.items.map((i: any) => `${i.quantity}x ${i.name}`).join(', ')}
+                                {order.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')}
                               </p>
                             </Link>
                             <div className="text-right">
@@ -294,7 +306,6 @@ export default function AdminDashboardPage() {
   );
 }
 
-import Link from 'next/link';
 const statusColors: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
   'Preparing': 'info',
   'Ready for Pickup': 'warning',
