@@ -25,10 +25,10 @@ export function Drawer({
   closeOnOverlayClick = true,
 }: DrawerProps) {
   const sizeStyles = {
-    sm: position === 'bottom' ? 'h-64' : 'w-64',
-    md: position === 'bottom' ? 'h-96' : 'w-96',
-    lg: position === 'bottom' ? 'h-[80vh]' : 'w-[32rem]',
-    full: position === 'bottom' ? 'h-[90vh]' : 'w-full max-w-md',
+    sm: position === 'bottom' ? 'h-64' : 'w-[calc(100vw-1rem)] sm:w-64',
+    md: position === 'bottom' ? 'h-96' : 'w-[calc(100vw-1rem)] sm:w-96',
+    lg: position === 'bottom' ? 'h-[80vh]' : 'w-[calc(100vw-1rem)] sm:w-[32rem]',
+    full: position === 'bottom' ? 'h-[90vh]' : 'w-[calc(100vw-1rem)] max-w-md',
   };
 
   const positionStyles = {

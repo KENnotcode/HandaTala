@@ -83,7 +83,7 @@ export function CartButton() {
   return (
     <motion.button
       onClick={openCart}
-      className="fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-amber-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-amber-700 transition-all duration-200"
+      className="fixed bottom-4 right-4 z-40 flex items-center gap-2 bg-amber-600 text-white px-3 py-3 sm:bottom-6 sm:right-6 sm:px-4 rounded-full shadow-lg hover:bg-amber-700 transition-all duration-200"
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       aria-label={`Open cart with ${itemCount} items, total ${formatPrice(subtotal)}`}

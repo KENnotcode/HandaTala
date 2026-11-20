@@ -126,16 +126,16 @@ export default function MenuPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          <aside className="lg:w-64 shrink-0">
-            <Card className="sticky top-24 p-4">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Categories</h3>
-              <nav className="space-y-1" aria-label="Category filter">
+          <aside className="w-full lg:w-64 shrink-0">
+            <Card className="lg:sticky lg:top-24 p-3 sm:p-4">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Categories</h3>
+              <nav className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-1 lg:overflow-visible lg:pb-0" aria-label="Category filter">
                 {displayCategories.map((category) => (
                   <button
                     key={category.id}
                     onClick={() => setActiveCategory(category.id)}
                     className={cn(
-                      'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
+                      'w-auto shrink-0 whitespace-nowrap text-left px-3 py-2 rounded-lg text-sm transition-colors lg:w-full',
                       activeCategory === category.id
                         ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -149,7 +149,7 @@ export default function MenuPage() {
           </aside>
 
           <div className="flex-1">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
               <div className="flex items-center gap-2">
                 <Button
                   variant={viewMode === 'grid' ? 'primary' : 'outline'}
