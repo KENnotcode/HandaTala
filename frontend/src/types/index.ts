@@ -59,10 +59,18 @@ export interface Payment {
 
 export interface User {
   id: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
   name: string;
   email: string;
   role: 'customer' | 'admin' | 'kitchen';
+  phone?: string;
+  photoURL?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
 
 export interface Category {
   id: string;

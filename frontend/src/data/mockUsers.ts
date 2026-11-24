@@ -19,3 +19,8 @@ export const mockAdminCredentials = {
   email: 'admin@handatala.test',
   password: 'admin123',
 };
+
+export const mockKitchenCredentials = {
+  email: 'kitchen@handatala.test',
+  password: 'kitchen123',
+};

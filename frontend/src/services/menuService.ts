@@ -1,100 +1,179 @@
 import { MenuItem, ServiceResponse, Category } from '@/types';
-import { mockMenuItems, categories } from '@/data/mockMenu';
+import { getErrorMessage } from '@/lib/apiError';
 
-let menuItems = [...mockMenuItems];
+// Helper to determine base URL for server/client fetch
+function getApiUrl(path: string) {
+  // In Next.js client side, relative URL '/api/...' works.
+  // On server side during SSR, we can use absolute URL if needed or relative.
+  return path;
+}
 
 export const menuService = {
   async getMenuItems(): Promise<ServiceResponse<MenuItem[]>> {
-    return {
-      success: true,
-      data: menuItems,
-      error: null,
-    };
-  },
-
-  async getMenuItemById(id: string): Promise<ServiceResponse<MenuItem | null>> {
-    const item = menuItems.find((item) => item.id === id);
-    return {
-      success: true,
-      data: item || null,
-      error: item ? null : { code: 'NOT_FOUND', message: 'Menu item not found' },
-    };
-  },
-
-  async getCategories(): Promise<ServiceResponse<Category[]>> {
-    return {
-      success: true,
-      data: categories,
-      error: null,
-    };
-  },
-
-  async getFeaturedItems(): Promise<ServiceResponse<MenuItem[]>> {
-    const featured = menuItems.filter((item) => item.isFeatured && item.isAvailable);
-    return {
-      success: true,
-      data: featured,
-      error: null,
-    };
-  },
-
-  async getPopularItems(): Promise<ServiceResponse<MenuItem[]>> {
-    const popular = menuItems.filter((item) => item.isAvailable).slice(0, 6);
-    return {
-      success: true,
-      data: popular,
-      error: null,
-    };
-  },
-
-  async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<ServiceResponse<MenuItem | null>> {
-    const index = menuItems.findIndex((item) => item.id === id);
-    if (index === -1) {
+    try {
+      const res = await fetch(getApiUrl('/api/menu'), { cache: 'no-store' });
+      const json = await res.json();
+      return json;
+    } catch (error: unknown) {
       return {
         success: false,
         data: null,
-        error: { code: 'NOT_FOUND', message: 'Menu item not found' },
+        error: { code: 'FETCH_ERROR', message: getErrorMessage(error) },
       };
     }
-    menuItems[index] = { ...menuItems[index], ...updates };
-    return {
-      success: true,
-      data: menuItems[index],
-      error: null,
-    };
   },
 
-  async addMenuItem(item: Omit<MenuItem, 'id'>): Promise<ServiceResponse<MenuItem>> {
-    const newItem: MenuItem = {
-      ...item,
-      id: `food-${Date.now()}`,
-    };
-    menuItems.push(newItem);
-    return {
-      success: true,
-      data: newItem,
-      error: null,
-    };
+  async getMenuItemById(id: string): Promise<ServiceResponse<MenuItem | null>> {
+    try {
+      const res = await fetch(getApiUrl(`/api/menu/${id}`), { cache: 'no-store' });
+      const json = await res.json();
+      return json;
+    } catch (error: unknown) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'FETCH_ERROR', message: getErrorMessage(error) },
+      };
+    }
   },
 
-  async deleteMenuItem(id: string): Promise<ServiceResponse<boolean>> {
-    const index = menuItems.findIndex((item) => item.id === id);
-    if (index === -1) {
+  async getCategories(): Promise<ServiceResponse<Category[]>> {
+    try {
+      const res = await fetch(getApiUrl('/api/categories'), { cache: 'no-store' });
+      const json = await res.json();
+      return json;
+    } catch (error: unknown) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'FETCH_ERROR', message: getErrorMessage(error) },
+      };
+    }
+  },
+
+  async getFeaturedItems(): Promise<ServiceResponse<MenuItem[]>> {
+    try {
+      const res = await fetch(getApiUrl('/api/menu?featured=true'), { cache: 'no-store' });
+      const json = await res.json();
+      if (json.success && json.data) {
+        return {
+          success: true,
+          data: json.data.filter((item: MenuItem) => item.isAvailable).slice(0, 4),
+          error: null,
+        };
+      }
+      return json;
+    } catch (error: unknown) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'FETCH_ERROR', message: getErrorMessage(error) },
+      };
+    }
+  },
+
+  async getPopularItems(): Promise<ServiceResponse<MenuItem[]>> {
+    try {
+      const res = await fetch(getApiUrl('/api/menu'), { cache: 'no-store' });
+      const json = await res.json();
+      if (json.success && json.data) {
+        return {
+          success: true,
+          data: json.data.filter((item: MenuItem) => item.isAvailable).slice(0, 6),
+          error: null,
+        };
+      }
+      return json;
+    } catch (error: unknown) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'FETCH_ERROR', message: getErrorMessage(error) },
+      };
+    }
+  },
+
+  async updateMenuItem(
+    id: string,
+    updates: Partial<MenuItem>,
+    adminKey?: string
+  ): Promise<ServiceResponse<MenuItem | null>> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (adminKey) {
+        headers['x-admin-key'] = adminKey;
+      }
+      const res = await fetch(getApiUrl(`/api/menu/${id}`), {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      return json;
+    } catch (error: unknown) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'UPDATE_ERROR', message: getErrorMessage(error) },
+      };
+    }
+  },
+
+  async addMenuItem(
+    item: Omit<MenuItem, 'id'>,
+    adminKey?: string
+  ): Promise<ServiceResponse<MenuItem>> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (adminKey) {
+        headers['x-admin-key'] = adminKey;
+      }
+      const res = await fetch(getApiUrl('/api/menu'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(item),
+      });
+      const json = await res.json();
+      return json;
+    } catch (error: unknown) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'ADD_ERROR', message: getErrorMessage(error) },
+      };
+    }
+  },
+
+  async deleteMenuItem(id: string, adminKey?: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const headers: Record<string, string> = {};
+      if (adminKey) {
+        headers['x-admin-key'] = adminKey;
+      }
+      const res = await fetch(getApiUrl(`/api/menu/${id}`), {
+        method: 'DELETE',
+        headers,
+      });
+      const json = await res.json();
+      return {
+        success: json.success,
+        data: json.success,
+        error: json.error,
+      };
+    } catch (error: unknown) {
       return {
         success: false,
         data: false,
-        error: { code: 'NOT_FOUND', message: 'Menu item not found' },
+        error: { code: 'DELETE_ERROR', message: getErrorMessage(error) },
       };
     }
-    menuItems.splice(index, 1);
-    return {
-      success: true,
-      data: true,
-      error: null,
-    };
   },
 
   resetMockData() {
-    menuItems = [...mockMenuItems];
+    // No-op for API/Firestore backed service
   },
 };

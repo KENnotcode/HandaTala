@@ -1,26 +1,75 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Utensils, Clock, Truck, Shield, ArrowRight, Sparkles } from 'lucide-react';
-import { Button, Card, Badge } from '@/components/ui';
+import { Utensils, Clock, Truck, Shield, ArrowRight, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { Button, Card, Badge, Skeleton } from '@/components/ui';
 import { FoodCard } from '@/components/menu';
 import { CartButton } from '@/components/cart';
-import { mockMenuItems } from '@/data/mockMenu';
+import { menuService } from '@/services/menuService';
 import { useInventoryStore } from '@/store/inventoryStore';
+import { useAuthStore } from '@/store/authStore';
+import { MenuItem } from '@/types';
+import { getErrorMessage } from '@/lib/apiError';
+import { UserMenu } from '@/components/auth/UserMenu';
 
 export default function LandingPage() {
+  const { user, isAuthenticated, checkAuth, isLoading: authLoading } = useAuthStore();
   const { isAvailable } = useInventoryStore();
-  
-  const featuredItems = mockMenuItems.filter(item => item.isFeatured && isAvailable(item.id)).slice(0, 4);
-  const popularItems = mockMenuItems.filter(item => isAvailable(item.id)).slice(0, 6);
+  const [featuredItems, setFeaturedItems] = useState<MenuItem[]>([]);
+  const [popularItems, setPopularItems] = useState<MenuItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [featuredRes, popularRes] = await Promise.all([
+          menuService.getFeaturedItems(),
+          menuService.getPopularItems(),
+        ]);
+
+        if (featuredRes.success && featuredRes.data) {
+          setFeaturedItems(featuredRes.data.filter(item => isAvailable(item.id)).slice(0, 4));
+        }
+        if (popularRes.success && popularRes.data) {
+          setPopularItems(popularRes.data.filter(item => isAvailable(item.id)).slice(0, 6));
+        }
+        if (!featuredRes.success && !popularRes.success) {
+          setError('Failed to load menu items');
+        }
+      } catch (err: unknown) {
+        setError(getErrorMessage(err));
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [isAvailable]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+      </div>
+    );
+  }
 
   const features = [
-    { icon: Utensils, title: 'Browse Menu', description: 'View today\'s fresh offerings with real-time availability' },
+    { icon: Utensils, title: 'Browse Menu', description: "View today's fresh offerings with real-time availability" },
     { icon: Clock, title: 'Order Ahead', description: 'Skip the line by pre-ordering from your phone' },
     { icon: Truck, title: 'Track Status', description: 'Real-time updates from kitchen to pickup' },
     { icon: Shield, title: 'Secure Payment', description: 'Pay online or at the counter' },
   ];
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -36,31 +85,42 @@ export default function LandingPage() {
               <span className="font-bold text-xl text-gray-900 dark:text-white">HandaTala</span>
             </Link>
             
-            <div className="hidden md:flex items-center gap-6">
-              <Link href="/menu" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors">
-                Menu
-              </Link>
-              <Link href="/orders" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors">
-                My Orders
-              </Link>
-              <Link href="/admin/login" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors">
-                Admin
-              </Link>
-            </div>
-            
             <div className="flex items-center gap-3">
-              <Link href="/menu">
-                <Button variant="primary" size="md">
-                  Order Now
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
+              {!authLoading && isAuthenticated && user ? (
+                <UserMenu />
+              ) : !authLoading ? (
+                <>
+                  <Link
+                    href="/login"
+                    className="flex min-h-11 items-center px-3 text-sm font-medium text-gray-700 transition-colors hover:text-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:text-gray-200"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/login?mode=signup"
+                    className="flex min-h-11 items-center rounded-lg bg-amber-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              ) : null}
             </div>
           </div>
         </nav>
       </header>
 
       <main className="pt-16">
+        {error && (
+          <div
+            role="alert"
+            className="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8"
+          >
+            <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
         <section className="relative overflow-hidden bg-linear-to-b from-amber-50 to-white dark:from-gray-900 dark:to-gray-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -105,7 +165,20 @@ export default function LandingPage() {
                   <div className="absolute inset-0 bg-linear-to-br from-amber-200 to-amber-400 rounded-3xl opacity-20 blur-2xl" />
                   <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
                     <div className="space-y-4">
-                      {featuredItems.slice(0, 3).map((item, index) => (
+                      {isLoading ? (
+                        Array.from({ length: 3 }).map((_, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl"
+                          >
+                            <Skeleton variant="rectangular" width={64} height={64} />
+                            <div className="flex-1 space-y-2">
+                              <Skeleton width="60%" />
+                              <Skeleton width="85%" />
+                            </div>
+                          </div>
+                        ))
+                      ) : featuredItems.slice(0, 3).map((item, index) => (
                         <motion.div
                           key={item.id}
                           initial={{ opacity: 0, y: 20 }}
@@ -205,7 +278,11 @@ export default function LandingPage() {
               viewport={{ once: true }}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {featuredItems.map((item, index) => (
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <FoodCard key={index} item={{} as MenuItem} isSkeleton />
+                  ))
+                ) : featuredItems.map((item, index) => (
                   <FoodCard
                     key={item.id}
                     item={item}
@@ -242,7 +319,11 @@ export default function LandingPage() {
               viewport={{ once: true }}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {popularItems.map((item, index) => (
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <FoodCard key={index} item={{} as MenuItem} isSkeleton />
+                  ))
+                ) : popularItems.map((item, index) => (
                   <FoodCard
                     key={item.id}
                     item={item}
@@ -297,7 +378,7 @@ export default function LandingPage() {
                 <li><Link href="/menu" className="hover:text-amber-600 transition-colors">Menu</Link></li>
                 <li><Link href="/orders" className="hover:text-amber-600 transition-colors">My Orders</Link></li>
                 <li><Link href="/queue" className="hover:text-amber-600 transition-colors">Kitchen Queue</Link></li>
-                <li><Link href="/admin/login" className="hover:text-amber-600 transition-colors">Admin Login</Link></li>
+                <li><Link href="/login" className="hover:text-amber-600 transition-colors">Login</Link></li>
               </ul>
             </div>
             <div>

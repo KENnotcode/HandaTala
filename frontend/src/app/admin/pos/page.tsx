@@ -39,7 +39,7 @@ export default function AdminPOSPage() {
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
-      router.push('/admin/login');
+      router.push('/login');
     }
   }, [authLoading, isAdmin, router]);
 

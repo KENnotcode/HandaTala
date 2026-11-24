@@ -1,28 +1,63 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { Filter, X, Grid, List } from 'lucide-react';
-import { Button, Card } from '@/components/ui';
+import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { Filter, X, Grid, List, Utensils } from 'lucide-react';
+import { Button, Card, EmptyState, Skeleton } from '@/components/ui';
 import { SearchBar, MenuGrid, FoodCard } from '@/components/menu';
-import { CartButton, CartDrawer } from '@/components/cart';
-import { mockMenuItems, categories } from '@/data/mockMenu';
+import { CartButton } from '@/components/cart';
+import { menuService } from '@/services/menuService';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { cn } from '@/utils/cn';
+import { MenuItem, Category } from '@/types';
+import { getErrorMessage } from '@/lib/apiError';
 
 export default function MenuPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const { fetchInventory, isAvailable } = useInventoryStore();
 
   useEffect(() => {
     fetchInventory();
+    async function loadMenu() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [menuRes, catRes] = await Promise.all([
+          menuService.getMenuItems(),
+          menuService.getCategories(),
+        ]);
+
+        if (menuRes.success && menuRes.data) {
+          setMenuItems(menuRes.data);
+        } else {
+          setError(menuRes.error?.message || 'Failed to load menu');
+        }
+
+        if (catRes.success && catRes.data) {
+          setCategories([{ id: 'all', name: 'all', displayName: 'All' }, ...catRes.data]);
+        } else if (!catRes.success) {
+          setError(catRes.error?.message || 'Failed to load categories');
+        }
+      } catch (err: unknown) {
+        setError(getErrorMessage(err));
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadMenu();
   }, [fetchInventory]);
 
   const filteredItems = useMemo(() => {
-    return mockMenuItems.filter((item) => {
+    return menuItems.filter((item) => {
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            item.description.toLowerCase().includes(searchQuery.toLowerCase());
       const categoryId = item.category.toLowerCase().replace(/\s*&\s*/g, '-').replace(/\s+/g, '-');
@@ -30,21 +65,21 @@ export default function MenuPage() {
       const isAvail = isAvailable(item.id);
       return matchesSearch && matchesCategory && isAvail;
     });
-  }, [searchQuery, activeCategory, isAvailable]);
+  }, [menuItems, searchQuery, activeCategory, isAvailable]);
 
   const availableCategories = useMemo(() => {
-    const cats = new Set(mockMenuItems.filter(item => isAvailable(item.id)).map(item => item.category));
+    const cats = new Set(menuItems.filter(item => isAvailable(item.id)).map(item => item.category));
     return Array.from(cats);
-  }, [isAvailable]);
+  }, [menuItems, isAvailable]);
 
   const displayCategories = useMemo(() => {
     return categories.filter(c => c.id === 'all' || availableCategories.includes(c.displayName));
-  }, [availableCategories]);
+  }, [categories, availableCategories]);
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <CartButton />
-      <CartDrawer />
       
       <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -130,7 +165,21 @@ export default function MenuPage() {
             <Card className="lg:sticky lg:top-24 p-3 sm:p-4">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Categories</h3>
               <nav className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-1 lg:overflow-visible lg:pb-0" aria-label="Category filter">
-                {displayCategories.map((category) => (
+                {error ? (
+                  <EmptyState
+                    icon={<Utensils className="w-12 h-12" />}
+                    title="Unable to load menu"
+                    description={error}
+                  />
+                ) : isLoading ? (
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <Skeleton
+                      key={index}
+                      variant="rectangular"
+                      className="h-9 w-28 shrink-0 lg:w-full"
+                    />
+                  ))
+                ) : displayCategories.map((category) => (
                   <button
                     key={category.id}
                     onClick={() => setActiveCategory(category.id)}
@@ -170,7 +219,26 @@ export default function MenuPage() {
               </div>
             </div>
 
-            {filteredItems.length === 0 ? (
+            {isLoading ? (
+              viewMode === 'grid' ? (
+                <MenuGrid items={[]} isLoading skeletonCount={8} />
+              ) : (
+                <div className="space-y-3">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div key={index} className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+                      <div className="flex items-center gap-4">
+                        <Skeleton variant="rectangular" width={96} height={96} />
+                        <div className="flex-1 space-y-3">
+                          <Skeleton width="45%" />
+                          <Skeleton width="75%" />
+                          <Skeleton width="25%" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : filteredItems.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -214,6 +282,3 @@ export default function MenuPage() {
   );
 }
 
-import Link from 'next/link';
-import { Utensils } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';

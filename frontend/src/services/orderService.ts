@@ -22,6 +22,16 @@ export const orderService = {
     };
   },
 
+  async getOrdersByCustomerId(customerId: string): Promise<ServiceResponse<Order[]>> {
+    const filtered = orders.filter((order) => order.customerId === customerId);
+    return {
+      success: true,
+      data: filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      error: null,
+    };
+  },
+
+
   async getOrderById(id: string): Promise<ServiceResponse<Order | null>> {
     const order = orders.find((order) => order.id === id);
     return {

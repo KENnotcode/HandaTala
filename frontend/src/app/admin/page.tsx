@@ -86,7 +86,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!isAdmin) {
-        router.push('/admin/login');
+        router.push('/login');
         return;
       }
       const timeoutId = window.setTimeout(() => {

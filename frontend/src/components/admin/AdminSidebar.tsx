@@ -34,9 +34,9 @@ export function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    router.push('/admin/login');
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/');
   };
 
   return (

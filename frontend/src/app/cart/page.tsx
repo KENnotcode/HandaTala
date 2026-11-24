@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowLeft, Trash2, ShoppingBag } from 'lucide-react';
 import { Button, Card, EmptyState } from '@/components/ui';
-import { CartDrawer, CartButton } from '@/components/cart';
+import { CartButton } from '@/components/cart';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/utils/format';
 import { useRouter } from 'next/navigation';
@@ -43,7 +43,6 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <CartButton />
-      <CartDrawer />
 
       <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

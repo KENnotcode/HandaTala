@@ -1,11 +1,14 @@
+'use client';
+
 import { CartItem as CartItemType } from '@/types';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { formatPrice } from '@/utils/format';
-import { mockMenuItems } from '@/data/mockMenu';
+import { menuService } from '@/services/menuService';
+import { MenuItem } from '@/types';
 
 interface CartItemProps {
   item: CartItemType;
@@ -16,7 +19,18 @@ interface CartItemProps {
 
 export function CartItem({ item, onQuantityChange, onRemove, onNotesChange }: CartItemProps) {
   const [showNotes, setShowNotes] = useState(false);
-  const menuItem = mockMenuItems.find((menuItem) => menuItem.id === item.menuItemId);
+  const [menuItem, setMenuItem] = useState<MenuItem | null>(null);
+
+  useEffect(() => {
+    async function fetchItem() {
+      const res = await menuService.getMenuItemById(item.menuItemId);
+      if (res.success && res.data) {
+        setMenuItem(res.data);
+      }
+    }
+    fetchItem();
+  }, [item.menuItemId]);
+
 
   return (
     <motion.div
