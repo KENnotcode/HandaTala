@@ -45,7 +45,7 @@ export const useCartStore = create<CartState>()(
           };
           set((state) => ({ items: [...state.items, newItem] }));
         }
-        set({ isOpen: true });
+        // set({ isOpen: true });
       },
 
       removeItem: (menuItemId: string) => {
