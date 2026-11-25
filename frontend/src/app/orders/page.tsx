@@ -91,7 +91,7 @@ export default function OrdersHistoryPage() {
               title="No orders yet"
               description="You haven't placed any orders yet. Browse our menu and place your first order!"
               action={{
-                label: 'Browse Menddddu',
+                label: 'Browse Menu',
                 onClick: () => router.push('/menu'),
                 variant: 'primary'
               }}
