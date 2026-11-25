@@ -183,7 +183,7 @@ export default function AdminInventoryPage() {
           </div>
         </header>
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 min-w-0 w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           {isLoading ? (
             <div className="animate-pulse space-y-4">
               <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded" />
@@ -234,14 +234,16 @@ export default function AdminInventoryPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <InventoryTable
+                <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <InventoryTable
                   items={filteredInventory}
                   menuItemsMap={menuItemsMap}
                   onUpdateStock={handleUpdateStock}
                   onSetAvailability={handleSetAvailability}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                />
+                  />
+                </div>
               </motion.div>
             </>
           )}

@@ -63,7 +63,7 @@ export function InventoryTable({
               >
                 <td className="p-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0">
+                    <div className="relative w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0">
                       <Image
                         src={menuInfo?.image || '/images/placeholder.jpg'}
                         alt={menuInfo?.name || 'Food'}
