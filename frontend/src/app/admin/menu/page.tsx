@@ -400,6 +400,7 @@ export default function AdminMenuPage() {
                             onClick={() => void handleAvailabilityChange(item)}
                             aria-label={item.isAvailable ? `Mark ${item.name} unavailable` : `Mark ${item.name} available`}
                             aria-pressed={item.isAvailable}
+                            className="w-28 justify-center"
                           >
                             {item.isAvailable ? 'Available' : 'Unavailable'}
                           </Button>
