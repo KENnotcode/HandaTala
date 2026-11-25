@@ -9,7 +9,19 @@ import { orderService } from './orderService';
 
 const AUTH_KEY = 'handatala_auth';
 const ADMIN_KEY = 'handatala_admin';
-const API_URL = 'http://localhost:5000/api/auth';
+const NETWORK_FAILURE_MESSAGE = 'Could not connect to the server. Check your connection and try again.';
+const INVALID_FIREBASE_CREDENTIAL_CODES = new Set([
+  'auth/invalid-credential',
+  'auth/wrong-password',
+  'auth/user-not-found',
+  'auth/invalid-email',
+]);
+
+function getErrorCode(error: unknown): string {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String(error.code)
+    : '';
+}
 
 
 export const authService = {
@@ -64,7 +76,7 @@ export const authService = {
     }
 
     try {
-      const response = await fetch(`${API_URL}/signup`, {
+      const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -81,6 +93,17 @@ export const authService = {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
+        if (response.status >= 500) {
+          console.error('Signup backend error:', {
+            status: response.status,
+            message: result.error?.message,
+          });
+          return {
+            success: false,
+            data: null,
+            error: { code: 'SERVER_ERROR', message: NETWORK_FAILURE_MESSAGE },
+          };
+        }
         return {
           success: false,
           data: null,
@@ -106,11 +129,12 @@ export const authService = {
       localStorage.removeItem(ADMIN_KEY);
 
       return { success: true, data: user, error: null };
-    } catch {
+    } catch (error: unknown) {
+      console.error('Signup request failed:', error);
       return {
         success: false,
         data: null,
-        error: { code: 'NETWORK_ERROR', message: 'Could not connect to backend server. Make sure backend is running on port 5000.' },
+        error: { code: 'NETWORK_ERROR', message: NETWORK_FAILURE_MESSAGE },
       };
     }
   },
@@ -122,7 +146,7 @@ export const authService = {
       const auth = getFirebaseAuth();
       const credential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
       const idToken = await credential.user.getIdToken();
-      const firebaseResponse = await fetch(`${API_URL}/firebase-signin`, {
+      const firebaseResponse = await fetch('/api/auth/firebase-signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,10 +156,24 @@ export const authService = {
       const firebaseResult = await firebaseResponse.json();
 
       if (!firebaseResponse.ok || !firebaseResult.success) {
+        if (firebaseResponse.status >= 500) {
+          console.error('Login backend error:', {
+            status: firebaseResponse.status,
+            message: firebaseResult.error?.message,
+          });
+          return {
+            success: false,
+            data: null,
+            error: { code: 'SERVER_ERROR', message: NETWORK_FAILURE_MESSAGE },
+          };
+        }
         return {
           success: false,
           data: null,
-          error: { code: 'INVALID_CREDENTIALS', message: firebaseResult.error?.message || 'Invalid email or password' },
+          error: {
+            code: 'AUTH_VERIFICATION_FAILED',
+            message: firebaseResult.error?.message || 'Unable to verify your sign-in with the server.',
+          },
         };
       }
 
@@ -150,20 +188,19 @@ export const authService = {
 
       return { success: true, data: user, error: null };
     } catch (error: unknown) {
-      const code = typeof error === 'object' && error !== null && 'code' in error
-        ? String(error.code)
-        : '';
-      if (code.startsWith('auth/')) {
+      const code = getErrorCode(error);
+      if (INVALID_FIREBASE_CREDENTIAL_CODES.has(code)) {
         return {
           success: false,
           data: null,
           error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
         };
       }
+      console.error('Login request failed:', error);
       return {
         success: false,
         data: null,
-        error: { code: 'NETWORK_ERROR', message: 'Could not connect to backend server. Make sure backend is running on port 5000.' },
+        error: { code: 'NETWORK_ERROR', message: NETWORK_FAILURE_MESSAGE },
       };
     }
   },

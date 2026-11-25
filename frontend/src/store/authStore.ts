@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { SignupInput, User } from '@/types';
+import type { ServiceResponse, SignupInput, User } from '@/types';
 import { authService } from '@/services/authService';
 
 interface AuthState {
@@ -7,7 +7,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<ServiceResponse<User>>;
   signup: (input: SignupInput) => Promise<{ success: boolean; message: string }>;
   updateProfile: (updates: { firstName: string; middleName?: string; lastName: string; name: string; phone: string; photoURL?: string }) => Promise<{ success: boolean; message: string }>;
   changePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
@@ -34,13 +34,18 @@ export const useAuthStore = create<AuthState>((set) => ({
           isAdmin: result.data.role === 'admin',
           isLoading: false,
         });
-        return true;
+      } else {
+        set({ isLoading: false });
       }
+      return result;
+    } catch (error: unknown) {
+      console.error('Unexpected login failure:', error);
       set({ isLoading: false });
-      return false;
-    } catch {
-      set({ isLoading: false });
-      return false;
+      return {
+        success: false,
+        data: null,
+        error: { code: 'LOGIN_FAILED', message: 'Could not connect to the server. Check your connection and try again.' },
+      };
     }
   },
 

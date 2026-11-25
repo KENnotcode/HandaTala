@@ -160,9 +160,9 @@ export default function AdminDashboardPage() {
       <AdminSidebar />
       
       <div className="min-h-screen min-w-0 flex flex-col lg:pl-64">
-        <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-gray-200 dark:border-gray-800">
+        <header className="sticky top-14 z-30 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-slate-900/95 lg:top-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 h-16">
+            <div className="flex flex-col gap-3 py-3 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:py-0">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Welcome back, {user?.name || 'Admin'}</p>

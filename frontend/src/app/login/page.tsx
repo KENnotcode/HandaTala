@@ -62,14 +62,14 @@ export default function LoginPage() {
         toast.error(result.message);
       }
     } else if (mode === 'login') {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password);
+      if (result.success && result.data) {
         const isAdmin = useAuthStore.getState().isAdmin;
         toast.success('Welcome back!');
         router.replace(isAdmin ? '/admin' : '/');
         router.refresh();
       } else {
-        toast.error('Invalid email or password.');
+        toast.error(result.error?.message || 'Could not connect to the server. Check your connection and try again.');
       }
     } else if (mode === 'forgot') {
       const result = await authService.forgotPassword(email);

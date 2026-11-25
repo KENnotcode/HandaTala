@@ -247,7 +247,7 @@ export default function AdminMenuPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <AdminSidebar />
       <div className="min-h-screen min-w-0 flex flex-col lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
+        <header className="sticky top-14 z-30 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95 lg:top-0">
           <div className="mx-auto flex min-h-20 max-w-7xl flex-col justify-center gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Menu Management</h1>

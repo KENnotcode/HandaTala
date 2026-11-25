@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowLeft, CreditCard, Wallet, CheckCircle, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CreditCard, Wallet, CheckCircle, ChevronRight, User, Phone, FileText } from 'lucide-react';
 import { Button, Card, Input, Badge } from '@/components/ui';
 import { CartButton } from '@/components/cart';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
 import { orderService } from '@/services/orderService';
 import { paymentService } from '@/services/paymentService';
 import { formatPrice } from '@/utils/format';
@@ -15,16 +16,26 @@ import { toast } from 'sonner';
 
 export default function CheckoutPage() {
   const { items, clearCart, getItemCount, getSubtotal, getTotal } = useCartStore();
+  const { user, checkAuth } = useAuthStore();
   const itemCount = getItemCount();
   const subtotal = getSubtotal();
   const total = getTotal();
 
   const [step, setStep] = useState<'payment' | 'confirm' | 'success'>('payment');
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'counter'>('online');
-  const [customerName, setCustomerName] = useState('');
+  const customerName = user
+    ? [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ') || user.name || ''
+    : '';
+  const customerPhone = user?.phone || '';
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [order, setOrder] = useState<{ trackingId: string } | null>(null);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+
 
   const paymentMethods: Array<{
     id: 'online' | 'counter';
@@ -62,10 +73,11 @@ export default function CheckoutPage() {
 
     setIsProcessing(true);
     try {
+      const fullDetailsName = customerPhone ? `${customerName} (${customerPhone})` : customerName;
       const result = await orderService.createOrder(
         items,
         paymentMethod,
-        customerName,
+        fullDetailsName,
         notes
       );
       
@@ -250,22 +262,36 @@ export default function CheckoutPage() {
             >
               <Card>
                 <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Customer Details</h2>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Customer Details</h2>
+                    {user && (
+                      <Badge variant="success" size="sm">
+                        Auto-filled from signed-in profile
+                      </Badge>
+                    )}
+                  </div>
                   <form onSubmit={handleSubmit}>
                     <div className="space-y-4">
                       <Input
-                        label="Your Name"
-                        placeholder="Enter your name"
+                        label="Full Name (First, Middle, Last)"
+                        placeholder="e.g. Juan Cruz Santos"
                         value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        required
-                        autoFocus
+                        disabled
+                        leftIcon={<User className="w-4 h-4 text-gray-400" />}
+                      />
+                      <Input
+                        label="Phone Number"
+                        placeholder="e.g. 09123456789"
+                        value={customerPhone}
+                        disabled
+                        leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
                       />
                       <Input
                         label="Order Notes (Optional)"
                         placeholder="Any special instructions for the kitchen?"
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
+                        leftIcon={<FileText className="w-4 h-4 text-gray-400" />}
                       />
                     </div>
                   </form>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -31,8 +32,16 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
   const router = useRouter();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobileOpen]);
 
   const handleLogout = async () => {
     await logout();
@@ -41,13 +50,21 @@ export function AdminSidebar() {
 
   return (
     <>
-      <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg"
-        onClick={() => setIsMobileOpen(true)}
-        aria-label="Open menu"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
+      <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900 lg:hidden">
+        <button
+          type="button"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+          onClick={() => setIsMobileOpen(true)}
+          aria-label="Open admin navigation"
+          aria-controls="admin-navigation-sidebar"
+          aria-expanded={isMobileOpen}
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <Link href="/admin" className="font-bold text-lg text-gray-900 dark:text-white">
+          HandaTala
+        </Link>
+      </div>
 
       <AnimatePresence>
         {isMobileOpen && (
@@ -55,113 +72,85 @@ export function AdminSidebar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/55 lg:hidden"
             onClick={() => setIsMobileOpen(false)}
+            aria-hidden="true"
           />
         )}
       </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-        <motion.aside
-          initial={{ x: -280 }}
-          animate={{ x: isMobileOpen || !isCollapsed ? 0 : -280 }}
-          exit={{ x: -280 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className={cn(
-            'fixed inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300',
-            isCollapsed ? 'w-20' : 'w-64',
-            isMobileOpen ? 'w-64' : ''
-          )}
-        >
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800">
-            <motion.div
-              initial={false}
-              animate={{ opacity: isCollapsed ? 0 : 1, width: isCollapsed ? 0 : 'auto' }}
-              className="overflow-hidden whitespace-nowrap"
-            >
-              <Link href="/admin" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center shrink-0">
-                  <Utensils className="w-5 h-5 text-white" />
-                </div>
-                <span className="font-bold text-xl text-gray-900 dark:text-white">HandaTala</span>
-              </Link>
-            </motion.div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="lg:hidden"
-              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
-            </Button>
-          </div>
-
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Admin navigation">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                    isActive
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-                  )}
-                  onClick={() => setIsMobileOpen(false)}
-                >
-                  <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                  <motion.span
-                    initial={false}
-                    animate={{ opacity: isCollapsed ? 0 : 1, width: isCollapsed ? 0 : 'auto' }}
-                    className="overflow-hidden whitespace-nowrap"
-                  >
-                    {item.name}
-                  </motion.span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="p-3 border-t border-gray-200 dark:border-gray-800">
-            <div className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-lg',
-              isCollapsed ? 'justify-center' : 'justify-start'
-            )}>
-              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                <Utensils className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              </div>
-              <motion.div
-                initial={false}
-                animate={{ opacity: isCollapsed ? 0 : 1, width: isCollapsed ? 0 : 'auto' }}
-                className="overflow-hidden whitespace-nowrap"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {user?.name || 'Admin'}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                    {user?.role || 'admin'}
-                  </p>
-                </div>
-              </motion.div>
+      <aside
+        id="admin-navigation-sidebar"
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[88vw] flex-col border-r border-gray-200 bg-white transition-transform duration-300 dark:border-gray-800 dark:bg-gray-900 lg:z-40 lg:w-64 lg:translate-x-0',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
+          <Link href="/admin" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-600">
+              <Utensils className="h-5 w-5 text-white" />
             </div>
-            <Button
-              variant="ghost"
-              fullWidth
-              onClick={handleLogout}
-              className="mt-2"
-              leftIcon={<LogOut className="w-4 h-4" />}
-            >
-              <span className={isCollapsed ? 'hidden' : 'inline'}>Sign Out</span>
-            </Button>
+            <span className="whitespace-nowrap text-xl font-bold text-gray-900 dark:text-white">HandaTala</span>
+          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsMobileOpen(false)}
+            className="lg:hidden"
+            aria-label="Close admin navigation"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Admin navigation">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-3 transition-colors',
+                  isActive
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white',
+                )}
+                onClick={() => setIsMobileOpen(false)}
+              >
+                <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <span className="whitespace-nowrap">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-gray-200 p-3 dark:border-gray-800">
+          <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+              <Utensils className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                {user?.name || 'Admin'}
+              </p>
+              <p className="text-xs capitalize text-gray-500 dark:text-gray-400">
+                {user?.role || 'admin'}
+              </p>
+            </div>
           </div>
-        </motion.aside>
-      </AnimatePresence>
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={handleLogout}
+            className="mt-2"
+            leftIcon={<LogOut className="h-4 w-4" />}
+          >
+            Sign Out
+          </Button>
+        </div>
+      </aside>
     </>
   );
 }
-
-import { useState } from 'react';
