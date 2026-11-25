@@ -35,18 +35,18 @@ export function DashboardStat({
 
   return (
     <motion.div
-      className={cn('p-5', className)}
+      className={className}
       style={style}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <Card className="p-5 h-full">
+      <Card className="p-4 sm:p-5 h-full">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
               {title}
             </p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
               {value}
             </p>
             {trend && (
@@ -58,7 +58,7 @@ export function DashboardStat({
               </p>
             )}
           </div>
-          <div className={cn('p-3 rounded-xl', colorStyles[color])}>
+          <div className={cn('p-2.5 sm:p-3 rounded-xl', colorStyles[color])}>
             {icon}
           </div>
         </div>

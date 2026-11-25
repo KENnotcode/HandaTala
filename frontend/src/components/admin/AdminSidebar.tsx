@@ -68,7 +68,7 @@ export function AdminSidebar() {
           exit={{ x: -280 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           className={cn(
-            'fixed lg:relative inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300',
+            'fixed inset-y-0 left-0 z-40 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300',
             isCollapsed ? 'w-20' : 'w-64',
             isMobileOpen ? 'w-64' : ''
           )}
