@@ -53,6 +53,7 @@ export function OrderTable({
             className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 appearance-none"
           >
             <option value="all">All Statuses</option>
+            <option value="Received">Received</option>
             <option value="Preparing">Preparing</option>
             <option value="Ready for Pickup">Ready for Pickup</option>
             <option value="Completed">Completed</option>

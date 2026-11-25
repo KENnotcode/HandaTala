@@ -25,10 +25,6 @@ export const paymentService = {
     };
 
     payments.push(payment);
-    
-    if (order.paymentMethod === 'online') {
-      await orderService.updatePaymentStatus(order.id, 'pending');
-    }
 
     return {
       success: true,
@@ -79,13 +75,15 @@ export const paymentService = {
       };
     }
 
-    payments[index] = {
-      ...payments[index],
-      status: 'paid',
-    };
-
-    await orderService.updatePaymentStatus(payments[index].orderId, 'paid');
-    await orderService.updateOrderStatus(payments[index].orderId, 'Preparing');
+    const result = await orderService.updatePaymentStatus(payments[index].orderId, 'paid');
+    if (!result.success || !result.data) {
+      return {
+        success: false,
+        data: null,
+        error: result.error || { code: 'PAYMENT_UPDATE_FAILED', message: 'Could not confirm payment.' },
+      };
+    }
+    payments[index] = { ...payments[index], status: 'paid' };
 
     return {
       success: true,
@@ -104,13 +102,15 @@ export const paymentService = {
       };
     }
 
-    payments[index] = {
-      ...payments[index],
-      status: 'paid',
-    };
-
-    await orderService.updatePaymentStatus(payments[index].orderId, 'paid');
-    await orderService.updateOrderStatus(payments[index].orderId, 'Preparing');
+    const result = await orderService.updatePaymentStatus(payments[index].orderId, 'paid');
+    if (!result.success || !result.data) {
+      return {
+        success: false,
+        data: null,
+        error: result.error || { code: 'PAYMENT_UPDATE_FAILED', message: 'Could not confirm payment.' },
+      };
+    }
+    payments[index] = { ...payments[index], status: 'paid' };
 
     return {
       success: true,
@@ -148,17 +148,15 @@ export const paymentService = {
     }
 
     const newStatus: PaymentStatus = success ? 'paid' : 'failed';
-    payments[index] = {
-      ...payments[index],
-      status: newStatus,
-    };
-
-    await orderService.updatePaymentStatus(payments[index].orderId, newStatus);
-    if (success) {
-      await orderService.updateOrderStatus(payments[index].orderId, 'Preparing');
-    } else {
-      await orderService.updateOrderStatus(payments[index].orderId, 'Cancelled');
+    const result = await orderService.updatePaymentStatus(payments[index].orderId, newStatus);
+    if (!result.success || !result.data) {
+      return {
+        success: false,
+        data: null,
+        error: result.error || { code: 'PAYMENT_UPDATE_FAILED', message: 'Could not update payment status.' },
+      };
     }
+    payments[index] = { ...payments[index], status: newStatus };
 
     return {
       success: true,

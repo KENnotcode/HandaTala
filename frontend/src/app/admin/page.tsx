@@ -307,6 +307,7 @@ export default function AdminDashboardPage() {
 }
 
 const statusColors: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
+  'Received': 'info',
   'Preparing': 'info',
   'Ready for Pickup': 'warning',
   'Completed': 'success',

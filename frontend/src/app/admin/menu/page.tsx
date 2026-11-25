@@ -265,7 +265,7 @@ export default function AdminMenuPage() {
           <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
               { label: 'Total items', value: items.length, icon: Utensils },
-              { label: 'Available', value: items.filter((item) => item.isAvailable && item.stock > 0).length, icon: Eye },
+              { label: 'Available', value: items.filter((item) => item.isAvailable && (item.availableStock ?? item.stock) > 0).length, icon: Eye },
               { label: 'Featured', value: `${featuredItemCount}/4`, icon: Star },
               { label: 'Categories', value: categories.length, icon: Package },
             ].map(({ label, value, icon: Icon }) => (

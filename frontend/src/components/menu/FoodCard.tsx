@@ -30,7 +30,7 @@ export function FoodCard({ item, isSkeleton = false, onAdd }: FoodCardProps) {
     );
   }
 
-  const stock = item.stock;
+  const stock = item.availableStock ?? item.stock;
   const lowStock = stock > 0 && stock <= 10;
   const available = item.isAvailable && stock > 0;
   const handleAdd = () => {

@@ -1,6 +1,6 @@
 import { OrderStatus as OrderStatusType } from '@/types';
 import { motion } from 'framer-motion';
-import { CheckCircle, Circle, Loader2, Truck, Package } from 'lucide-react';
+import { CheckCircle, Circle, Clock, Loader2, Truck, Package } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 interface OrderStatusProps {
@@ -11,6 +11,11 @@ interface OrderStatusProps {
 }
 
 const statusConfig: Record<OrderStatusType, { label: string; color: string; icon: React.ReactNode }> = {
+  Received: {
+    label: 'Received',
+    color: 'amber',
+    icon: <Clock className="w-4 h-4" />,
+  },
   'Pending Payment': {
     label: 'Pending Payment',
     color: 'amber',
@@ -74,10 +79,10 @@ interface OrderTimelineProps {
   className?: string;
 }
 
-const statusOrder: OrderStatusType[] = ['Preparing', 'Ready for Pickup', 'Completed'];
+const statusOrder: OrderStatusType[] = ['Received', 'Preparing', 'Ready for Pickup', 'Completed'];
 
 export function OrderTimeline({ currentStatus, className }: OrderTimelineProps) {
-  const currentIndex = statusOrder.indexOf(currentStatus);
+  const currentIndex = statusOrder.indexOf(currentStatus === 'Pending Payment' ? 'Received' : currentStatus);
   const isCompleted = currentStatus === 'Completed';
   const isCancelled = currentStatus === 'Cancelled';
 

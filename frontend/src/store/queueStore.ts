@@ -24,7 +24,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     try {
       const result = await orderService.getActiveOrders();
       if (result.success && result.data) {
-        const preparing = result.data.filter((o) => o.orderStatus === 'Preparing' || o.orderStatus === 'Pending Payment');
+        const preparing = result.data.filter((o) => o.orderStatus === 'Preparing');
         const ready = result.data.filter((o) => o.orderStatus === 'Ready for Pickup');
         const completedResult = await orderService.getOrdersByStatus('Completed');
         const completed = completedResult.success && completedResult.data 

@@ -98,7 +98,7 @@ export default function AdminPOSPage() {
   }, [menuItems]);
 
   const availableItems = useMemo(() => {
-    return menuItems.filter((item) => item.isAvailable && item.stock > 0);
+    return menuItems.filter((item) => item.isAvailable && (item.availableStock ?? item.stock) > 0);
   }, [menuItems]);
 
   const filteredItems = useMemo(() => {
@@ -186,10 +186,35 @@ export default function AdminPOSPage() {
 
       const order = newOrder.data;
       if (paymentMethod === 'online') {
-        await paymentService.initializeCheckout(order);
+        const paymentResult = await paymentService.initializeCheckout(order);
+        if (!paymentResult.success || !paymentResult.data) {
+          const releaseResult = await orderService.updatePaymentStatus(order.id, 'failed');
+          if (!releaseResult.success) {
+            console.error('Failed to release POS order stock after checkout initialization error:', releaseResult.error);
+          }
+          toast.error(paymentResult.error?.message || 'Could not start payment.');
+          setIsProcessing(false);
+          return;
+        }
+        const payment = paymentResult.data.payment;
         setTimeout(async () => {
-          await paymentService.simulatePaymentCallback(order.id, true);
-          setLastOrder(order);
+          const callbackResult = await paymentService.simulatePaymentCallback(
+            payment.id,
+            true
+          );
+          if (!callbackResult.success) {
+            const releaseResult = await orderService.updatePaymentStatus(order.id, 'failed');
+            if (!releaseResult.success) {
+              console.error('Failed to release POS order stock after payment error:', releaseResult.error);
+            }
+            toast.error(callbackResult.error?.message || 'Payment could not be completed.');
+            setIsProcessing(false);
+            return;
+          }
+          const refreshedOrder = await orderService.getOrderById(order.id);
+          setLastOrder(refreshedOrder.success && refreshedOrder.data
+            ? refreshedOrder.data
+            : { ...order, paymentStatus: 'paid', stockDeducted: true, stockReserved: false });
           setShowReceipt(true);
           setCart([]);
           setCustomerName('');

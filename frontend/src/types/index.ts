@@ -7,6 +7,7 @@ export interface MenuItem {
   costPrice: number;
   image: string;
   stock: number;
+  availableStock?: number;
   lowStockThreshold?: number;
   isAvailable: boolean;
   isFeatured: boolean;
@@ -25,6 +26,7 @@ export interface CartItem {
 }
 
 export type OrderStatus =
+  | 'Received'
   | 'Preparing'
   | 'Ready for Pickup'
   | 'Completed'
@@ -51,6 +53,8 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   statusHistory?: OrderStatusEvent[];
+  stockDeducted?: boolean;
+  stockReserved?: boolean;
 }
 
 export interface InventoryItem {

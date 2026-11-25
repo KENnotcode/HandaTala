@@ -13,6 +13,7 @@ const COLLECTION = 'menu_items';
 
 interface FormattedMenuDocument extends Partial<MenuItem> {
   id: string;
+  availableStock: number;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -36,9 +37,13 @@ function formatDoc(doc: DocumentSnapshot): FormattedMenuDocument | null {
     updatedAt?: unknown;
   }) | undefined;
   if (!data) return null;
+  const stock = typeof data.stock === 'number' && Number.isFinite(data.stock) ? data.stock : 0;
+  const publicData = { ...data };
+  delete (publicData as { reservedStock?: unknown }).reservedStock;
   return {
     id: doc.id,
-    ...data,
+    ...publicData,
+    availableStock: stock,
     createdAt: formatTimestamp(data.createdAt),
     updatedAt: formatTimestamp(data.updatedAt),
   };

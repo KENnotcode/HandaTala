@@ -145,17 +145,20 @@ export default function OrderTrackingPage() {
   statusHistory.forEach((event) => timestampByStatus.set(event.status, event.timestamp));
 
   const hasPendingPayment = statusHistory.some((event) => event.status === 'Pending Payment');
+  const hasReceived = statusHistory.some((event) => event.status === 'Received');
   const isCancelled = order.orderStatus === 'Cancelled';
   const previousStatuses: OrderStatusValue[] = ['Preparing', 'Ready for Pickup', 'Completed'];
   const timelineStatuses: TimelineStatus[] = isCancelled
     ? [
       'Placed Order',
+      ...(hasReceived ? ['Received' as const] : []),
       ...(hasPendingPayment ? ['Pending Payment' as const] : []),
       ...previousStatuses.filter((status) => statusHistory.some((event) => event.status === status)),
       'Cancelled',
     ]
     : [
       'Placed Order',
+      ...(hasReceived ? ['Received' as const] : []),
       ...(hasPendingPayment ? ['Pending Payment' as const] : []),
       ...previousStatuses,
     ];

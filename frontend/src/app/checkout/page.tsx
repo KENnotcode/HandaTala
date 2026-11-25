@@ -88,14 +88,34 @@ export default function CheckoutPage() {
         if (paymentMethod === 'online') {
           const paymentResult = await paymentService.initializeCheckout(newOrder);
           if (paymentResult.success && paymentResult.data) {
+            const payment = paymentResult.data.payment;
             // Simulate payment processing
             setTimeout(async () => {
-              await paymentService.simulatePaymentCallback(paymentResult.data!.payment.id, true);
+              const callbackResult = await paymentService.simulatePaymentCallback(
+                payment.id,
+                true
+              );
+              if (!callbackResult.success) {
+                const releaseResult = await orderService.updatePaymentStatus(newOrder.id, 'failed');
+                if (!releaseResult.success) {
+                  console.error('Failed to release order stock after payment error:', releaseResult.error);
+                }
+                toast.error(callbackResult.error?.message || 'Payment could not be completed.');
+                setIsProcessing(false);
+                return;
+              }
               setStep('success');
               clearCart();
               setIsProcessing(false);
               toast.success('Order placed successfully!');
             }, 1500);
+          } else {
+            const releaseResult = await orderService.updatePaymentStatus(newOrder.id, 'failed');
+            if (!releaseResult.success) {
+              console.error('Failed to release order stock after checkout initialization error:', releaseResult.error);
+            }
+            toast.error(paymentResult.error?.message || 'Could not start payment. Please try again.');
+            setIsProcessing(false);
           }
         } else {
           setStep('success');
@@ -103,6 +123,9 @@ export default function CheckoutPage() {
           setIsProcessing(false);
           toast.success('Order placed! Pay at counter when you pick up.');
         }
+      } else {
+        toast.error(result.error?.message || 'Failed to place order. Please try again.');
+        setIsProcessing(false);
       }
     } catch {
       toast.error('Failed to place order. Please try again.');

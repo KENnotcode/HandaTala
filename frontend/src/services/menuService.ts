@@ -95,7 +95,9 @@ export const menuService = {
       if (json.success && json.data) {
         return {
           success: true,
-          data: json.data.filter((item: MenuItem) => item.isAvailable && item.stock > 0).slice(0, 6),
+          data: json.data.filter(
+            (item: MenuItem) => item.isAvailable && (item.availableStock ?? item.stock) > 0
+          ).slice(0, 6),
           error: null,
         };
       }
