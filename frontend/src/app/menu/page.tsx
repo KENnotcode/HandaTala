@@ -58,19 +58,18 @@ export default function MenuPage() {
                            item.description.toLowerCase().includes(searchQuery.toLowerCase());
       const categoryId = item.category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const matchesCategory = activeCategory === 'all' || categoryId === activeCategory;
-      const isAvail = item.isAvailable && item.stock > 0;
-      return matchesSearch && matchesCategory && isAvail;
+      return matchesSearch && matchesCategory;
     });
   }, [menuItems, searchQuery, activeCategory]);
 
-  const availableCategories = useMemo(() => {
-    const cats = new Set(menuItems.filter(item => item.isAvailable && item.stock > 0).map(item => item.category));
+  const menuCategories = useMemo(() => {
+    const cats = new Set(menuItems.map((item) => item.category));
     return Array.from(cats);
   }, [menuItems]);
 
   const displayCategories = useMemo(() => {
-    return categories.filter(c => c.id === 'all' || availableCategories.includes(c.displayName));
-  }, [categories, availableCategories]);
+    return categories.filter((category) => category.id === 'all' || menuCategories.includes(category.displayName));
+  }, [categories, menuCategories]);
 
 
   return (

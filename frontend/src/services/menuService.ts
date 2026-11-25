@@ -74,9 +74,7 @@ export const menuService = {
       if (json.success && json.data) {
         return {
           success: true,
-          data: json.data
-            .filter((item: MenuItem) => item.isFeatured && item.isAvailable && item.stock > 0)
-            .slice(0, 4),
+          data: json.data.filter((item: MenuItem) => item.isFeatured).slice(0, 4),
           error: null,
         };
       }

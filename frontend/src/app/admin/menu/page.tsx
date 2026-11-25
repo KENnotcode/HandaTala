@@ -217,7 +217,7 @@ export default function AdminMenuPage() {
     }
     const updatedItem = result.data;
     setItems((current) => current.map((currentItem) => currentItem.id === item.id ? updatedItem : currentItem));
-    toast.success(updatedItem.isAvailable ? 'Item is now available.' : 'Item is now hidden.');
+    toast.success(updatedItem.isAvailable ? 'Item is now available.' : 'Item is now unavailable.');
   };
 
   const handleDelete = async () => {
@@ -393,16 +393,22 @@ export default function AdminMenuPage() {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3 dark:border-gray-700 lg:border-0 lg:pt-0">
-                        <Badge variant={item.isAvailable && item.stock > 0 ? 'success' : 'danger'} dot>
-                          {item.isAvailable && item.stock > 0 ? 'Available' : 'Unavailable'}
-                        </Badge>
                         <div className="ml-auto flex items-center gap-1">
+                          <Button
+                            variant={item.isAvailable ? 'secondary' : 'outline'}
+                            size="sm"
+                            onClick={() => void handleAvailabilityChange(item)}
+                            aria-label={item.isAvailable ? `Mark ${item.name} unavailable` : `Mark ${item.name} available`}
+                            aria-pressed={item.isAvailable}
+                          >
+                            {item.isAvailable ? 'Available' : 'Unavailable'}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => void handleAvailabilityChange(item)}
-                            aria-label={item.isAvailable ? `Hide ${item.name}` : `Publish ${item.name}`}
-                            title={item.isAvailable ? 'Hide item' : 'Publish item'}
+                            aria-label={item.isAvailable ? `Hide ${item.name}` : `Show ${item.name}`}
+                            title={item.isAvailable ? 'Hide item' : 'Show item'}
                           >
                             {item.isAvailable
                               ? <EyeOff className="h-4 w-4" />

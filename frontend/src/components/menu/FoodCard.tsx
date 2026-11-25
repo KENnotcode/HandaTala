@@ -54,7 +54,7 @@ export function FoodCard({ item, isSkeleton = false, onAdd }: FoodCardProps) {
             alt={item.name}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+            className={`w-full h-full object-cover transition-transform duration-300 hover:scale-105 ${isSoldOut ? 'grayscale' : ''}`}
           />
           {item.isFeatured && (
             <Badge variant="warning" className="absolute top-2 left-2" dot>
@@ -62,10 +62,10 @@ export function FoodCard({ item, isSkeleton = false, onAdd }: FoodCardProps) {
             </Badge>
           )}
           {isSoldOut && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Badge variant="danger" size="lg" className="px-4 py-2 text-lg">
-                Sold Out
-              </Badge>
+            <div className="absolute inset-0 flex items-center justify-center bg-linear-to-t from-gray-900/75 via-gray-600/40 to-gray-300/10">
+              <span className="rounded-full bg-red-600 px-4 py-2 text-lg font-bold ">
+                {item.isAvailable ? 'Sold Out' : 'Unavailable'}
+              </span>
             </div>
           )}
           {lowStock && !isSoldOut && (
@@ -103,7 +103,7 @@ export function FoodCard({ item, isSkeleton = false, onAdd }: FoodCardProps) {
                 )
               ) : (
                 <Badge variant="danger" size="sm" dot>
-                  Unavailable
+                  {item.isAvailable ? 'Sold Out' : 'Unavailable'}
                 </Badge>
               )}
             </div>
@@ -120,7 +120,7 @@ export function FoodCard({ item, isSkeleton = false, onAdd }: FoodCardProps) {
             leftIcon={<ShoppingCart className="w-4 h-4" />}
             className="mt-auto"
           >
-            {isSoldOut ? 'Sold Out' : 'Add to Cart'}
+            {isSoldOut ? (item.isAvailable ? 'Sold Out' : 'Unavailable') : 'Add to Cart'}
           </Button>
         </div>
       </Card>

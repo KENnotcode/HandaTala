@@ -16,7 +16,6 @@ import { UserMenu } from '@/components/auth/UserMenu';
 export default function LandingPage() {
   const { user, isAuthenticated, checkAuth, isLoading: authLoading } = useAuthStore();
   const [featuredItems, setFeaturedItems] = useState<MenuItem[]>([]);
-  const [popularItems, setPopularItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +24,7 @@ export default function LandingPage() {
     if (result.success && result.data) {
       setFeaturedItems(
         result.data
-          .filter((item) => item.isFeatured && item.isAvailable && item.stock > 0)
+          .filter((item) => item.isFeatured)
           .slice(0, 4),
       );
     } else {
@@ -50,12 +49,9 @@ export default function LandingPage() {
         if (featuredRes.success && featuredRes.data) {
           setFeaturedItems(
             featuredRes.data
-              .filter((item) => item.isFeatured && item.isAvailable && item.stock > 0)
+              .filter((item) => item.isFeatured)
               .slice(0, 4),
           );
-        }
-        if (popularRes.success && popularRes.data) {
-          setPopularItems(popularRes.data.filter((item) => item.isAvailable && item.stock > 0).slice(0, 6));
         }
         if (!featuredRes.success && !popularRes.success) {
           setError('Failed to load menu items');
@@ -325,47 +321,6 @@ export default function LandingPage() {
                     No featured items right now. Check back soon.
                   </Card>
                 )}
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        <section className="py-16 lg:py-24 bg-white dark:bg-gray-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <Badge variant="default" className="mb-4" dot>
-                Popular Items
-              </Badge>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                Customer Favorites
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Most ordered items this week
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {isLoading ? (
-                  Array.from({ length: 3 }).map((_, index) => (
-                    <FoodCard key={index} item={{} as MenuItem} isSkeleton />
-                  ))
-                ) : popularItems.map((item, index) => (
-                  <FoodCard
-                    key={item.id}
-                    item={item}
-                    style={{ transitionDelay: `${index * 50}ms` }}
-                  />
-                ))}
               </div>
             </motion.div>
           </div>
