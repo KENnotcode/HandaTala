@@ -6,13 +6,15 @@ const lanOrigins = Object.values(networkInterfaces())
   .filter((networkInterface) => networkInterface.family === "IPv4" && !networkInterface.internal)
   .map((networkInterface) => networkInterface.address);
 
+const apiUrl = process.env.next_PUBLIC_API_URL || "http://localhost:5000";
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: lanOrigins,
   async rewrites() {
     return [
       {
         source: '/api/auth/:path*',
-        destination: 'http://localhost:5000/api/auth/:path*',
+        destination: `${apiUrl}/api/auth/:path*`,
       },
     ];
   },
