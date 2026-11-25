@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { FieldValue, type DocumentSnapshot } from 'firebase-admin/firestore';
 import { firestore } from '@/lib/firebaseAdmin';
+import { isAdminRequest } from '@/lib/adminAuth';
 import { getErrorMessage } from '@/lib/apiError';
 import type { MenuItem } from '@/types';
 import { z } from 'zod';
@@ -28,7 +30,7 @@ function formatTimestamp(value: unknown): string | null {
 }
 
 // Helper to convert Firestore timestamps & documents
-function formatDoc(doc: FirebaseFirestore.DocumentSnapshot): FormattedMenuDocument | null {
+function formatDoc(doc: DocumentSnapshot): FormattedMenuDocument | null {
   const data = doc.data() as (Partial<MenuItem> & {
     createdAt?: unknown;
     updatedAt?: unknown;
@@ -40,16 +42,6 @@ function formatDoc(doc: FirebaseFirestore.DocumentSnapshot): FormattedMenuDocume
     createdAt: formatTimestamp(data.createdAt),
     updatedAt: formatTimestamp(data.updatedAt),
   };
-}
-
-// Admin auth check helper
-function checkAdminAuth(req: NextRequest) {
-  const adminKey = req.headers.get('x-admin-key');
-  const expectedKey = process.env.ADMIN_KEY;
-  if (!expectedKey || adminKey !== expectedKey) {
-    return false;
-  }
-  return true;
 }
 
 // Zod schema for validation
@@ -100,9 +92,9 @@ export async function GET(req: NextRequest) {
 // POST /api/menu (create item)
 export async function POST(req: NextRequest) {
   try {
-    if (!checkAdminAuth(req)) {
+    if (!(await isAdminRequest(req))) {
       return NextResponse.json(
-        { success: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Invalid or missing x-admin-key' } },
+        { success: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Admin authentication required' } },
         { status: 401 }
       );
     }
@@ -128,7 +120,7 @@ export async function POST(req: NextRequest) {
     const customId = body.id || `food-${Date.now()}`;
     const docRef = colRef.doc(customId);
 
-    const now = FirebaseFirestore.FieldValue.serverTimestamp();
+    const now = FieldValue.serverTimestamp();
     const newDoc = {
       ...data,
       createdAt: now,

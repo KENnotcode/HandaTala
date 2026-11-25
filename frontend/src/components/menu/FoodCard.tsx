@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { ShoppingCart } from 'lucide-react';
 import { Button, Badge, Card, Skeleton } from '@/components/ui';
 import { useCartStore } from '@/store/cartStore';
-import { useInventoryStore } from '@/store/inventoryStore';
 import { formatPrice } from '@/utils/format';
 
 interface FoodCardProps {
@@ -16,18 +15,6 @@ interface FoodCardProps {
 
 export function FoodCard({ item, isSkeleton = false, onAdd }: FoodCardProps) {
   const { addItem } = useCartStore();
-  const { getStock, isLowStock, isAvailable } = useInventoryStore();
-  
-  const stock = getStock(item.id);
-  const lowStock = isLowStock(item.id);
-  const available = isAvailable(item.id);
-
-  const handleAdd = () => {
-    if (available) {
-      addItem(item);
-      onAdd?.();
-    }
-  };
 
   if (isSkeleton) {
     return (
@@ -43,6 +30,15 @@ export function FoodCard({ item, isSkeleton = false, onAdd }: FoodCardProps) {
     );
   }
 
+  const stock = item.stock;
+  const lowStock = stock > 0 && stock <= 10;
+  const available = item.isAvailable && stock > 0;
+  const handleAdd = () => {
+    if (available) {
+      addItem(item);
+      onAdd?.();
+    }
+  };
   const isSoldOut = !available || stock === 0;
 
   return (

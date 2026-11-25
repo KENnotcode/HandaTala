@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
+import { getAuth, type Auth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 function getOrInitApp(): App {
@@ -31,3 +32,4 @@ function getOrInitApp(): App {
 const app = getOrInitApp();
 
 export const firestore: Firestore = getFirestore(app);
+export const firebaseAuth: Auth = getAuth(app);

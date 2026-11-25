@@ -8,7 +8,6 @@ import { Button, Card, EmptyState, Skeleton } from '@/components/ui';
 import { SearchBar, MenuGrid, FoodCard } from '@/components/menu';
 import { CartButton } from '@/components/cart';
 import { menuService } from '@/services/menuService';
-import { useInventoryStore } from '@/store/inventoryStore';
 import { cn } from '@/utils/cn';
 import { MenuItem, Category } from '@/types';
 import { getErrorMessage } from '@/lib/apiError';
@@ -23,10 +22,7 @@ export default function MenuPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { fetchInventory, isAvailable } = useInventoryStore();
-
   useEffect(() => {
-    fetchInventory();
     async function loadMenu() {
       setIsLoading(true);
       setError(null);
@@ -54,23 +50,23 @@ export default function MenuPage() {
       }
     }
     loadMenu();
-  }, [fetchInventory]);
+  }, []);
 
   const filteredItems = useMemo(() => {
     return menuItems.filter((item) => {
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            item.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const categoryId = item.category.toLowerCase().replace(/\s*&\s*/g, '-').replace(/\s+/g, '-');
+      const categoryId = item.category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const matchesCategory = activeCategory === 'all' || categoryId === activeCategory;
-      const isAvail = isAvailable(item.id);
+      const isAvail = item.isAvailable && item.stock > 0;
       return matchesSearch && matchesCategory && isAvail;
     });
-  }, [menuItems, searchQuery, activeCategory, isAvailable]);
+  }, [menuItems, searchQuery, activeCategory]);
 
   const availableCategories = useMemo(() => {
-    const cats = new Set(menuItems.filter(item => isAvailable(item.id)).map(item => item.category));
+    const cats = new Set(menuItems.filter(item => item.isAvailable && item.stock > 0).map(item => item.category));
     return Array.from(cats);
-  }, [menuItems, isAvailable]);
+  }, [menuItems]);
 
   const displayCategories = useMemo(() => {
     return categories.filter(c => c.id === 'all' || availableCategories.includes(c.displayName));

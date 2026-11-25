@@ -8,7 +8,6 @@ import { Button, Card, Badge, Skeleton } from '@/components/ui';
 import { FoodCard } from '@/components/menu';
 import { CartButton } from '@/components/cart';
 import { menuService } from '@/services/menuService';
-import { useInventoryStore } from '@/store/inventoryStore';
 import { useAuthStore } from '@/store/authStore';
 import { MenuItem } from '@/types';
 import { getErrorMessage } from '@/lib/apiError';
@@ -16,7 +15,6 @@ import { UserMenu } from '@/components/auth/UserMenu';
 
 export default function LandingPage() {
   const { user, isAuthenticated, checkAuth, isLoading: authLoading } = useAuthStore();
-  const { isAvailable } = useInventoryStore();
   const [featuredItems, setFeaturedItems] = useState<MenuItem[]>([]);
   const [popularItems, setPopularItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,10 +35,10 @@ export default function LandingPage() {
         ]);
 
         if (featuredRes.success && featuredRes.data) {
-          setFeaturedItems(featuredRes.data.filter(item => isAvailable(item.id)).slice(0, 4));
+          setFeaturedItems(featuredRes.data.filter((item) => item.isAvailable && item.stock > 0).slice(0, 4));
         }
         if (popularRes.success && popularRes.data) {
-          setPopularItems(popularRes.data.filter(item => isAvailable(item.id)).slice(0, 6));
+          setPopularItems(popularRes.data.filter((item) => item.isAvailable && item.stock > 0).slice(0, 6));
         }
         if (!featuredRes.success && !popularRes.success) {
           setError('Failed to load menu items');
@@ -52,7 +50,7 @@ export default function LandingPage() {
       }
     }
     loadData();
-  }, [isAvailable]);
+  }, []);
 
   if (authLoading) {
     return (

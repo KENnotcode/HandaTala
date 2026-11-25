@@ -1,11 +1,27 @@
 import { MenuItem, ServiceResponse, Category } from '@/types';
 import { getErrorMessage } from '@/lib/apiError';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 
 // Helper to determine base URL for server/client fetch
 function getApiUrl(path: string) {
   // In Next.js client side, relative URL '/api/...' works.
   // On server side during SSR, we can use absolute URL if needed or relative.
   return path;
+}
+
+async function getAdminHeaders(): Promise<Record<string, string>> {
+  const auth = getFirebaseAuth();
+  await auth.authStateReady();
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error('Sign in with an admin account to manage menu items.');
+  }
+
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${await user.getIdToken()}`,
+  };
 }
 
 export const menuService = {
@@ -58,7 +74,7 @@ export const menuService = {
       if (json.success && json.data) {
         return {
           success: true,
-          data: json.data.filter((item: MenuItem) => item.isAvailable).slice(0, 4),
+          data: json.data.filter((item: MenuItem) => item.isAvailable && item.stock > 0).slice(0, 4),
           error: null,
         };
       }
@@ -79,7 +95,7 @@ export const menuService = {
       if (json.success && json.data) {
         return {
           success: true,
-          data: json.data.filter((item: MenuItem) => item.isAvailable).slice(0, 6),
+          data: json.data.filter((item: MenuItem) => item.isAvailable && item.stock > 0).slice(0, 6),
           error: null,
         };
       }
@@ -95,16 +111,10 @@ export const menuService = {
 
   async updateMenuItem(
     id: string,
-    updates: Partial<MenuItem>,
-    adminKey?: string
+    updates: Partial<MenuItem>
   ): Promise<ServiceResponse<MenuItem | null>> {
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (adminKey) {
-        headers['x-admin-key'] = adminKey;
-      }
+      const headers = await getAdminHeaders();
       const res = await fetch(getApiUrl(`/api/menu/${id}`), {
         method: 'PUT',
         headers,
@@ -122,16 +132,10 @@ export const menuService = {
   },
 
   async addMenuItem(
-    item: Omit<MenuItem, 'id'>,
-    adminKey?: string
+    item: Omit<MenuItem, 'id'>
   ): Promise<ServiceResponse<MenuItem>> {
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (adminKey) {
-        headers['x-admin-key'] = adminKey;
-      }
+      const headers = await getAdminHeaders();
       const res = await fetch(getApiUrl('/api/menu'), {
         method: 'POST',
         headers,
@@ -148,12 +152,9 @@ export const menuService = {
     }
   },
 
-  async deleteMenuItem(id: string, adminKey?: string): Promise<ServiceResponse<boolean>> {
+  async deleteMenuItem(id: string): Promise<ServiceResponse<boolean>> {
     try {
-      const headers: Record<string, string> = {};
-      if (adminKey) {
-        headers['x-admin-key'] = adminKey;
-      }
+      const headers = await getAdminHeaders();
       const res = await fetch(getApiUrl(`/api/menu/${id}`), {
         method: 'DELETE',
         headers,
