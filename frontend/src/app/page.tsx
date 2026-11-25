@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Utensils, Clock, Truck, Shield, ArrowRight, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
@@ -20,6 +20,19 @@ export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const refreshFeaturedItems = useCallback(async () => {
+    const result = await menuService.getFeaturedItems();
+    if (result.success && result.data) {
+      setFeaturedItems(
+        result.data
+          .filter((item) => item.isFeatured && item.isAvailable && item.stock > 0)
+          .slice(0, 4),
+      );
+    } else {
+      setError(result.error?.message || 'Failed to load featured menu items');
+    }
+  }, []);
+
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
@@ -35,7 +48,11 @@ export default function LandingPage() {
         ]);
 
         if (featuredRes.success && featuredRes.data) {
-          setFeaturedItems(featuredRes.data.filter((item) => item.isAvailable && item.stock > 0).slice(0, 4));
+          setFeaturedItems(
+            featuredRes.data
+              .filter((item) => item.isFeatured && item.isAvailable && item.stock > 0)
+              .slice(0, 4),
+          );
         }
         if (popularRes.success && popularRes.data) {
           setPopularItems(popularRes.data.filter((item) => item.isAvailable && item.stock > 0).slice(0, 6));
@@ -51,6 +68,23 @@ export default function LandingPage() {
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshFeaturedItems();
+      }
+    };
+    const intervalId = window.setInterval(refreshWhenVisible, 30_000);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [refreshFeaturedItems]);
 
   if (authLoading) {
     return (
@@ -280,13 +314,17 @@ export default function LandingPage() {
                   Array.from({ length: 4 }).map((_, index) => (
                     <FoodCard key={index} item={{} as MenuItem} isSkeleton />
                   ))
-                ) : featuredItems.map((item, index) => (
+                ) : featuredItems.length > 0 ? featuredItems.map((item, index) => (
                   <FoodCard
                     key={item.id}
                     item={item}
                     style={{ transitionDelay: `${index * 50}ms` }}
                   />
-                ))}
+                )) : (
+                  <Card className="col-span-full py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No featured items right now. Check back soon.
+                  </Card>
+                )}
               </div>
             </motion.div>
           </div>

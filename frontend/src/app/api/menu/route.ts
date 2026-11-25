@@ -114,6 +114,22 @@ export async function POST(req: NextRequest) {
     }
 
     const data = result.data;
+    if (data.isFeatured) {
+      const featuredItems = await firestore.collection(COLLECTION)
+        .where('isFeatured', '==', true)
+        .get();
+      if (featuredItems.size >= 4) {
+        return NextResponse.json(
+          {
+            success: false,
+            data: null,
+            error: { code: 'FEATURED_LIMIT', message: 'You can only display 4 featured items.' },
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const colRef = firestore.collection(COLLECTION);
     
     // Generate new id if none in body

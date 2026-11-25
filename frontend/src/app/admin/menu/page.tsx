@@ -113,6 +113,10 @@ export default function AdminMenuPage() {
     () => Array.from(new Set(items.map((item) => item.category))).sort((a, b) => a.localeCompare(b)),
     [items],
   );
+  const featuredItemCount = useMemo(
+    () => items.filter((item) => item.isFeatured).length,
+    [items],
+  );
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -170,6 +174,15 @@ export default function AdminMenuPage() {
       isFeatured: form.isFeatured,
       preparationTime,
     };
+
+    if (
+      menuItem.isFeatured
+      && !editingItem?.isFeatured
+      && featuredItemCount >= 4
+    ) {
+      toast.error('You can only display 4 featured items.');
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -253,7 +266,7 @@ export default function AdminMenuPage() {
             {[
               { label: 'Total items', value: items.length, icon: Utensils },
               { label: 'Available', value: items.filter((item) => item.isAvailable && item.stock > 0).length, icon: Eye },
-              { label: 'Featured', value: items.filter((item) => item.isFeatured).length, icon: Star },
+              { label: 'Featured', value: `${featuredItemCount}/4`, icon: Star },
               { label: 'Categories', value: categories.length, icon: Package },
             ].map(({ label, value, icon: Icon }) => (
               <Card key={label} className="flex items-center gap-3 p-4">
@@ -534,7 +547,18 @@ export default function AdminMenuPage() {
               <input
                 type="checkbox"
                 checked={form.isFeatured}
-                onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))}
+                onChange={(event) => {
+                  if (
+                    event.target.checked
+                    && !form.isFeatured
+                    && !editingItem?.isFeatured
+                    && featuredItemCount >= 4
+                  ) {
+                    toast.error('You can only display 4 featured items.');
+                    return;
+                  }
+                  setForm((current) => ({ ...current, isFeatured: event.target.checked }));
+                }}
                 className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
               />
               Feature on home page
