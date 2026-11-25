@@ -20,16 +20,30 @@ if (!JWT_SECRET) {
 // Signup endpoint
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, error: { message: 'All fields are required' } });
+    const { firstName, middleName = '', lastName, phone, email, password } = req.body;
+    if (!firstName || !lastName || !phone || !email || !password) {
+      return res.status(400).json({ success: false, error: { message: 'First name, last name, mobile number, email, and password are required' } });
     }
 
+    const namePattern = /^[\p{L} .'-]+$/u;
+    const phonePattern = /^(09\d{9}|\+639\d{9})$/;
+    const normalizedFirstName = firstName.trim();
+    const normalizedMiddleName = middleName.trim();
+    const normalizedLastName = lastName.trim();
     const normalizedEmail = email.trim().toLowerCase();
-    const normalizedName = name.trim();
+    const normalizedPhone = phone.trim();
+    const normalizedName = [normalizedFirstName, normalizedMiddleName, normalizedLastName].filter(Boolean).join(' ');
 
-    if (!normalizedName) {
-      return res.status(400).json({ success: false, error: { message: 'All fields are required' } });
+    if ([normalizedFirstName, normalizedMiddleName, normalizedLastName].some((value) => value.length > 50 || (value.length > 0 && !namePattern.test(value)))) {
+      return res.status(400).json({ success: false, error: { message: 'Names contain invalid characters or are too long' } });
+    }
+
+    if (!normalizedPhone) {
+      return res.status(400).json({ success: false, error: { message: 'Mobile number is required' } });
+    }
+
+    if (!phonePattern.test(normalizedPhone)) {
+      return res.status(400).json({ success: false, error: { message: 'Use a valid Philippine mobile number' } });
     }
 
     if (password.length < 6) {
@@ -70,13 +84,13 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const newUser = {
       id: firebaseUser.uid,
-      firstName: '',
-      middleName: '',
-      lastName: '',
+      firstName: normalizedFirstName,
+      middleName: normalizedMiddleName,
+      lastName: normalizedLastName,
       name: normalizedName,
       email: normalizedEmail,
       role: 'customer',
-      phone: '',
+      phone: normalizedPhone,
       photoURL: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

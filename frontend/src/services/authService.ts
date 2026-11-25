@@ -1,8 +1,10 @@
-import { User, ServiceResponse, Order } from '@/types';
+import { User, ServiceResponse, Order, SignupInput } from '@/types';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateProfile as fbUpdateProfile } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getFirestore } from 'firebase/firestore';
+import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+import { getFirebaseStorage } from '@/lib/firebaseClient';
 import { orderService } from './orderService';
 
 const AUTH_KEY = 'handatala_auth';
@@ -11,19 +13,49 @@ const API_URL = 'http://localhost:5000/api/auth';
 
 
 export const authService = {
-  async signup(name: string, email: string, password: string): Promise<ServiceResponse<User>> {
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedName = name.trim();
+  async signup(input: SignupInput): Promise<ServiceResponse<User>> {
+    const firstName = input.firstName.trim();
+    const middleName = input.middleName?.trim() || '';
+    const lastName = input.lastName.trim();
+    const normalizedEmail = input.email.trim().toLowerCase();
+    const phone = input.phone.trim();
+    const normalizedName = [firstName, middleName, lastName].filter(Boolean).join(' ');
+    const namePattern = /^[\p{L} .'-]+$/u;
+    const phonePattern = /^(09\d{9}|\+639\d{9})$/;
 
-    if (!normalizedName) {
+    if (!firstName || !lastName) {
       return {
         success: false,
         data: null,
-        error: { code: 'INVALID_NAME', message: 'Name is required' },
+        error: { code: 'INVALID_NAME', message: 'First name and last name are required' },
       };
     }
 
-    if (password.length < 6) {
+    if ([firstName, middleName, lastName].some((value) => value.length > 50 || (value.length > 0 && !namePattern.test(value)))) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'INVALID_NAME', message: 'Names contain invalid characters or are too long' },
+      };
+    }
+
+    if (!phone) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'INVALID_PHONE', message: 'Mobile number is required' },
+      };
+    }
+
+    if (!phonePattern.test(phone)) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'INVALID_PHONE', message: 'Use a valid Philippine mobile number' },
+      };
+    }
+
+    if (input.password.length < 6) {
       return {
         success: false,
         data: null,
@@ -35,7 +67,15 @@ export const authService = {
       const response = await fetch(`${API_URL}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: normalizedName, email: normalizedEmail, password }),
+        body: JSON.stringify({
+          firstName,
+          middleName,
+          lastName,
+          phone,
+          name: normalizedName,
+          email: normalizedEmail,
+          password: input.password,
+        }),
       });
 
       const result = await response.json();
@@ -49,6 +89,18 @@ export const authService = {
       }
 
       const { user, token } = result.data;
+      try {
+        await signInWithEmailAndPassword(getFirebaseAuth(), normalizedEmail, input.password);
+      } catch {
+        return {
+          success: false,
+          data: null,
+          error: {
+            code: 'AUTH_SESSION_FAILED',
+            message: 'Account created, but the sign-in session could not be established. Please sign in again.',
+          },
+        };
+      }
       const authData = { user, token, isAuthenticated: true, isAdmin: false };
       localStorage.setItem(AUTH_KEY, JSON.stringify(authData));
       localStorage.removeItem(ADMIN_KEY);
@@ -121,7 +173,7 @@ export const authService = {
     middleName?: string;
     lastName: string;
     name: string;
-    phone?: string;
+    phone: string;
     photoURL?: string;
   }): Promise<ServiceResponse<User>> {
     const currentUser = this.getCurrentUser();
@@ -133,11 +185,29 @@ export const authService = {
       };
     }
 
+    const previousProfile = {
+      firstName: currentUser.firstName || '',
+      middleName: currentUser.middleName || '',
+      lastName: currentUser.lastName || '',
+      name: currentUser.name,
+      phone: currentUser.phone || '',
+      photoURL: currentUser.photoURL || '',
+      updatedAt: currentUser.updatedAt || '',
+    };
+    let userRef: ReturnType<typeof doc> | undefined;
+
     try {
       const auth = getFirebaseAuth();
       const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        return {
+          success: false,
+          data: null,
+          error: { code: 'UNAUTHENTICATED', message: 'Your Firebase session has expired. Please sign out and sign in again.' },
+        };
+      }
       const db = getFirestore(auth.app);
-      const userRef = doc(db, 'users', currentUser.id);
+      userRef = doc(db, 'users', currentUser.id);
 
       const updatedAt = new Date().toISOString();
       const updatedUser: User = {
@@ -161,12 +231,10 @@ export const authService = {
         updatedAt,
       });
 
-      if (firebaseUser) {
-        await fbUpdateProfile(firebaseUser, {
-          displayName: updatedUser.name,
-          photoURL: updatedUser.photoURL || '',
-        }).catch(() => {});
-      }
+      await fbUpdateProfile(firebaseUser, {
+        displayName: updatedUser.name,
+        photoURL: updatedUser.photoURL || '',
+      });
 
       const authDataStr = localStorage.getItem(AUTH_KEY);
       if (authDataStr) {
@@ -179,11 +247,66 @@ export const authService = {
 
       return { success: true, data: updatedUser, error: null };
     } catch (error: unknown) {
+      let rollbackMessage = '';
+      try {
+        if (userRef) await updateDoc(userRef, previousProfile);
+      } catch (rollbackError: unknown) {
+        rollbackMessage = rollbackError instanceof Error ? ` Profile rollback failed: ${rollbackError.message}` : ' Profile rollback failed.';
+      }
       const message = error instanceof Error ? error.message : 'Failed to update profile';
       return {
         success: false,
         data: null,
-        error: { code: 'UPDATE_FAILED', message },
+        error: { code: 'UPDATE_FAILED', message: `${message}${rollbackMessage}` },
+      };
+    }
+  },
+
+  async uploadProfilePhoto(
+    blob: Blob,
+    userId: string,
+    onProgress?: (progress: number) => void
+  ): Promise<ServiceResponse<string>> {
+    try {
+      const storageRef = ref(getFirebaseStorage(), `profile-photos/${userId}/avatar.jpg`);
+      const uploadTask = uploadBytesResumable(storageRef, blob, { contentType: 'image/jpeg' });
+      const downloadURL = await new Promise<string>((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => onProgress?.((snapshot.bytesTransferred / snapshot.totalBytes) * 100),
+          reject,
+          async () => resolve(await getDownloadURL(uploadTask.snapshot.ref))
+        );
+      });
+      return { success: true, data: downloadURL, error: null };
+    } catch (error: unknown) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: 'PHOTO_UPLOAD_FAILED',
+          message: error instanceof Error ? error.message : 'Failed to upload profile photo',
+        },
+      };
+    }
+  },
+
+  async deleteProfilePhoto(photoURL: string): Promise<ServiceResponse<boolean>> {
+    if (!photoURL || !photoURL.includes('firebasestorage.googleapis.com')) {
+      return { success: true, data: true, error: null };
+    }
+
+    try {
+      await deleteObject(ref(getFirebaseStorage(), photoURL));
+      return { success: true, data: true, error: null };
+    } catch (error: unknown) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: 'PHOTO_DELETE_FAILED',
+          message: error instanceof Error ? error.message : 'Failed to delete profile photo',
+        },
       };
     }
   },

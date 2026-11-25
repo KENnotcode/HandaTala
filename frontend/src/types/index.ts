@@ -71,6 +71,15 @@ export interface User {
   updatedAt?: string;
 }
 
+export interface SignupInput {
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  password: string;
+}
+
 
 export interface Category {
   id: string;

@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,4 +18,13 @@ export function getFirebaseAuth() {
 
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   return getAuth(app);
+}
+
+export function getFirebaseStorage() {
+  if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId || !firebaseConfig.appId || !firebaseConfig.storageBucket) {
+    throw new Error('Missing public Firebase Storage configuration.');
+  }
+
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  return getStorage(app);
 }

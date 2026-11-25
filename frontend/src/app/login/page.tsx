@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Loader2, Utensils, Shield } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Utensils, Shield, Phone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button, Input, Card } from '@/components/ui';
@@ -13,9 +13,13 @@ import { authService } from '@/services/authService';
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
@@ -36,7 +40,20 @@ export default function LoginPage() {
     setIsLoading(true);
 
     if (mode === 'signup') {
-      const result = await signup(name, email, password);
+      if (password !== confirmPassword) {
+        toast.error('Passwords do not match.');
+        setIsLoading(false);
+        return;
+      }
+
+      const result = await signup({
+        firstName,
+        middleName,
+        lastName,
+        phone,
+        email,
+        password,
+      });
       if (result.success) {
         toast.success(result.message);
         router.replace('/');
@@ -118,16 +135,52 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {mode === 'signup' && (
-              <Input
-                label="Name"
-                type="text"
-                placeholder="Your name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-                leftIcon={<Shield className="w-5 h-5" />}
-                autoComplete="name"
-              />
+              <>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Input
+                    label="First name"
+                    type="text"
+                    placeholder="First name"
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                    required
+                    maxLength={50}
+                    leftIcon={<Shield className="w-5 h-5" />}
+                    autoComplete="given-name"
+                  />
+                  <Input
+                    label="Middle name (optional)"
+                    type="text"
+                    placeholder="Middle name"
+                    value={middleName}
+                    onChange={(event) => setMiddleName(event.target.value)}
+                    maxLength={50}
+                    autoComplete="additional-name"
+                  />
+                </div>
+                <Input
+                  label="Last name"
+                  type="text"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  required
+                  maxLength={50}
+                  leftIcon={<Shield className="w-5 h-5" />}
+                  autoComplete="family-name"
+                />
+                <Input
+                  label="Mobile number"
+                  type="tel"
+                  placeholder="09171234567"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  required
+                  pattern="^(09\d{9}|\\+639\d{9})$"
+                  leftIcon={<Phone className="w-5 h-5" />}
+                  autoComplete="tel"
+                />
+              </>
             )}
 
             <Input
@@ -161,7 +214,21 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 }
-                autoComplete="current-password"
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              />
+            )}
+
+            {mode === 'signup' && (
+              <Input
+                label="Confirm password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Confirm password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                required
+                minLength={6}
+                leftIcon={<Shield className="w-5 h-5" />}
+                autoComplete="new-password"
               />
             )}
 

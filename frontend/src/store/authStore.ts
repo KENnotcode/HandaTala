@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User } from '@/types';
+import { SignupInput, User } from '@/types';
 import { authService } from '@/services/authService';
 
 interface AuthState {
@@ -8,8 +8,8 @@ interface AuthState {
   isAdmin: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  updateProfile: (updates: { firstName: string; middleName?: string; lastName: string; name: string; phone?: string; photoURL?: string }) => Promise<{ success: boolean; message: string }>;
+  signup: (input: SignupInput) => Promise<{ success: boolean; message: string }>;
+  updateProfile: (updates: { firstName: string; middleName?: string; lastName: string; name: string; phone: string; photoURL?: string }) => Promise<{ success: boolean; message: string }>;
   changePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   checkAuth: () => void;
@@ -44,10 +44,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  signup: async (name: string, email: string, password: string) => {
+  signup: async (input: SignupInput) => {
     set({ isLoading: true });
     try {
-      const result = await authService.signup(name, email, password);
+      const result = await authService.signup(input);
       if (result.success && result.data) {
         set({
           user: result.data,
