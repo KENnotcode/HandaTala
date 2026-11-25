@@ -1,27 +1,33 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { Plus, Minus, Trash2, CreditCard, Wallet, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import Image from 'next/image';
+import { Plus, Minus, Trash2, CreditCard, Wallet, X, Search, CheckCircle } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin';
 import { FoodCard } from '@/components/menu';
 import { Button, Badge, Card, Input, Modal } from '@/components/ui';
 import { orderService } from '@/services/orderService';
 import { paymentService } from '@/services/paymentService';
-import { mockMenuItems } from '@/data/mockMenu';
-import { useInventoryStore } from '@/store/inventoryStore';
+import { menuService } from '@/services/menuService';
 import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/utils/cn';
 import { toast } from 'sonner';
-import { CartItem, MenuItem, Order } from '@/types';
+import type { CartItem, MenuItem, Order } from '@/types';
+
+function categoryKey(category: string): string {
+  return category.trim().toLowerCase().replace(/[\s_]+/g, '-');
+}
 
 export default function AdminPOSPage() {
   const router = useRouter();
   const { isAdmin, isLoading: authLoading, checkAuth, user } = useAuthStore();
-  const { isAvailable } = useInventoryStore();
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isMenuLoading, setIsMenuLoading] = useState(true);
+  const [menuError, setMenuError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('cash');
@@ -31,7 +37,28 @@ export default function AdminPOSPage() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastOrder, setLastOrder] = useState<Order | null>(null);
 
-  const categories = ['all', 'rice-meals', 'meals', 'snacks', 'drinks', 'desserts'];
+  const loadMenuItems = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsMenuLoading(true);
+    try {
+      const result = await menuService.getMenuItems();
+      if (!result.success || !result.data) {
+        const message = result.error?.message || 'Could not load menu items.';
+        console.error('Failed to load POS menu:', result.error);
+        setMenuError(message);
+        if (showLoading) toast.error(message);
+        return;
+      }
+
+      setMenuItems(result.data);
+      setMenuError(null);
+    } catch (error: unknown) {
+      console.error('Failed to load POS menu:', error);
+      setMenuError('Could not load menu items.');
+      if (showLoading) toast.error('Could not load menu items.');
+    } finally {
+      if (showLoading) setIsMenuLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     checkAuth();
@@ -43,14 +70,43 @@ export default function AdminPOSPage() {
     }
   }, [authLoading, isAdmin, router]);
 
+  useEffect(() => {
+    if (authLoading || !isAdmin) return;
+
+    const refreshMenu = () => void loadMenuItems(false);
+    window.addEventListener('focus', refreshMenu);
+    const intervalId = window.setInterval(refreshMenu, 30000);
+    return () => {
+      window.removeEventListener('focus', refreshMenu);
+      window.clearInterval(intervalId);
+    };
+  }, [authLoading, isAdmin, loadMenuItems]);
+
+  const categories = useMemo(() => {
+    const categoryMap = new Map<string, string>();
+    menuItems.forEach((item) => {
+      const key = categoryKey(item.category);
+      if (key && !categoryMap.has(key)) {
+        categoryMap.set(key, item.category.trim());
+      }
+    });
+    return [
+      { key: 'all', label: 'All' },
+      ...Array.from(categoryMap, ([key, label]) => ({ key, label }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    ];
+  }, [menuItems]);
+
   const availableItems = useMemo(() => {
-    return mockMenuItems.filter(item => isAvailable(item.id));
-  }, [isAvailable]);
+    return menuItems.filter((item) => item.isAvailable && item.stock > 0);
+  }, [menuItems]);
 
   const filteredItems = useMemo(() => {
     return availableItems.filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = activeCategory === 'all' || item.category.toLowerCase().replace(' ', '-') === activeCategory;
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch = item.name.toLowerCase().includes(query)
+        || item.description.toLowerCase().includes(query);
+      const matchesCategory = activeCategory === 'all' || categoryKey(item.category) === activeCategory;
       return matchesSearch && matchesCategory;
     });
   }, [availableItems, searchQuery, activeCategory]);
@@ -74,6 +130,7 @@ export default function AdminPOSPage() {
         quantity: 1,
         unitPrice: item.price,
         subtotal: item.price,
+        image: item.image,
       }];
     });
   };
@@ -121,32 +178,36 @@ export default function AdminPOSPage() {
         notes
       );
 
-      if (newOrder.success && newOrder.data) {
-        const order = newOrder.data;
-        if (paymentMethod === 'online') {
-          await paymentService.initializeCheckout(order);
-          // Simulate payment
-          setTimeout(async () => {
-            await paymentService.simulatePaymentCallback(order.id, true);
-            setLastOrder(order);
-            setShowReceipt(true);
-            setCart([]);
-            setCustomerName('');
-            setNotes('');
-            setIsProcessing(false);
-            toast.success('Order completed!');
-          }, 1000);
-        } else {
+      if (!newOrder.success || !newOrder.data) {
+        toast.error(newOrder.error?.message || 'Failed to process order');
+        setIsProcessing(false);
+        return;
+      }
+
+      const order = newOrder.data;
+      if (paymentMethod === 'online') {
+        await paymentService.initializeCheckout(order);
+        setTimeout(async () => {
+          await paymentService.simulatePaymentCallback(order.id, true);
           setLastOrder(order);
           setShowReceipt(true);
           setCart([]);
           setCustomerName('');
           setNotes('');
           setIsProcessing(false);
-          toast.success('Order created! Pay at counter.');
-        }
+          toast.success('Order completed!');
+        }, 1000);
+      } else {
+        setLastOrder(order);
+        setShowReceipt(true);
+        setCart([]);
+        setCustomerName('');
+        setNotes('');
+        setIsProcessing(false);
+        toast.success('Order created! Pay at counter.');
       }
-    } catch {
+    } catch (error: unknown) {
+      console.error('Failed to process POS order:', error);
       toast.error('Failed to process order');
       setIsProcessing(false);
     }
@@ -177,15 +238,15 @@ export default function AdminPOSPage() {
           </div>
         </header>
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
+        <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <section className="min-w-0">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                  <div className="relative max-w-md flex-1">
+                <div className="mb-4 flex flex-col gap-4">
+                  <div className="relative w-full xl:max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <Input
                       placeholder="Search menu..."
@@ -194,50 +255,86 @@ export default function AdminPOSPage() {
                       className="pl-10"
                     />
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {categories.map(cat => (
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map(category => (
                       <button
-                        key={cat}
-                        onClick={() => setActiveCategory(cat)}
+                        key={category.key}
+                        onClick={() => setActiveCategory(category.key)}
                         className={cn(
-                          'px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
-                          activeCategory === cat
+                          'rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors',
+                          activeCategory === category.key
                             ? 'bg-amber-600 text-white'
                             : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                         )}
                       >
-                        {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
+                        {category.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[50vh] overflow-y-auto">
-                  {filteredItems.map((item, index) => (
-                    <FoodCard
-                      key={item.id}
-                      item={item}
-                      onAdd={() => addToCart(item)}
-                      style={{ transitionDelay: `${index * 30}ms` }}
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            </div>
+                {menuError && (
+                  <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span>{menuError}</span>
+                      <Button variant="outline" size="sm" onClick={() => void loadMenuItems()}>
+                        Retry
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-            <div className="lg:col-span-1">
+                {isMenuLoading ? (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+                    {Array.from({ length: 6 }, (_, index) => (
+                      <div key={index} className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                        <div className="aspect-video animate-pulse bg-gray-200 dark:bg-gray-700" />
+                        <div className="space-y-3 p-4">
+                          <div className="h-4 w-2/3 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                          <div className="h-3 w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                          <div className="h-9 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredItems.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+                    {filteredItems.map((item) => (
+                      <FoodCard
+                        key={item.id}
+                        item={item}
+                        onAdd={() => addToCart(item)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-300 px-6 py-12 text-center dark:border-gray-700">
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {menuItems.length === 0 ? 'No menu items available' : 'No matching items'}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      {menuItems.length === 0
+                        ? 'Add items through Menu Management to make them available here.'
+                        : 'Try another search or category.'}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            </section>
+
+            <aside className="min-w-0">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <Card className="sticky top-24 flex flex-col h-[calc(100vh-8rem)]">
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <Card className="flex flex-col xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)]">
+                  <div className="flex shrink-0 items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Current Order</h2>
                     <Badge variant="default">{itemCount} items</Badge>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-4">
+                  <div className="min-h-0 flex-1 overflow-y-auto p-4">
                     {cart.length === 0 ? (
                       <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                         <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -254,6 +351,22 @@ export default function AdminPOSPage() {
                           >
                             <div className="w-12 h-12 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden">
                               <div className="w-full h-full bg-linear-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30" />
+                            </div>
+                            <div className="w-12 h-12 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden relative">
+                              {item.image ? (
+                                <Image
+                                  src={item.image}
+                                  alt={item.name}
+                                  fill
+                                  sizes="48px"
+                                  unoptimized
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-linear-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30 flex items-center justify-center">
+                                  <span className="text-lg">🍽️</span>
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
@@ -298,7 +411,7 @@ export default function AdminPOSPage() {
                   </div>
 
                   {cart.length > 0 && (
-                    <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                    <div className="shrink-0 space-y-3 border-t border-gray-200 p-4 dark:border-gray-700">
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
@@ -376,7 +489,7 @@ export default function AdminPOSPage() {
                   )}
                 </Card>
               </motion.div>
-            </div>
+            </aside>
           </div>
         </main>
       </div>
@@ -423,6 +536,3 @@ export default function AdminPOSPage() {
     </div>
   );
 }
-
-import { AnimatePresence } from 'framer-motion';
-import { Search, CheckCircle } from 'lucide-react';

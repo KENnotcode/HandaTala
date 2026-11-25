@@ -35,8 +35,11 @@ export function FoodCard({ item, isSkeleton = false, onAdd }: FoodCardProps) {
   const available = item.isAvailable && stock > 0;
   const handleAdd = () => {
     if (available) {
-      addItem(item);
-      onAdd?.();
+      if (onAdd) {
+        onAdd();
+      } else {
+        addItem(item);
+      }
     }
   };
   const isSoldOut = !available || stock === 0;

@@ -19,6 +19,7 @@ export interface CartItem {
   unitPrice: number;
   subtotal: number;
   notes?: string;
+  image?: string;
 }
 
 export interface Order {

@@ -52,11 +52,16 @@ export default function AdminOrdersPage() {
         router.push('/login');
         return;
       }
-      void fetchOrders();
+      const initialFetchId = window.setTimeout(() => {
+        void fetchOrders();
+      }, 0);
       const intervalId = window.setInterval(() => {
         void fetchOrders(false);
       }, 15000);
-      return () => window.clearInterval(intervalId);
+      return () => {
+        window.clearTimeout(initialFetchId);
+        window.clearInterval(intervalId);
+      };
     }
   }, [authLoading, isAdmin, router, fetchOrders]);
 
@@ -101,7 +106,7 @@ export default function AdminOrdersPage() {
               </div>
               <div className="flex items-center gap-3">
                 <Button variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />}>Export</Button>
-                <Button variant="outline" size="sm" onClick={fetchOrders} leftIcon={<RefreshCw className="w-4 h-4" />} disabled={isLoading}>
+                <Button variant="outline" size="sm" onClick={() => void fetchOrders()} leftIcon={<RefreshCw className="w-4 h-4" />} disabled={isLoading}>
                   Refresh
                 </Button>
               </div>
