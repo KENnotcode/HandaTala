@@ -1,152 +1,127 @@
-import { Order, CartItem, ServiceResponse, OrderStatus, PaymentMethod, PaymentStatus } from '@/types';
-import { mockOrders } from '@/data/mockOrders';
+import type { Order, CartItem, ServiceResponse, OrderStatus, PaymentMethod, PaymentStatus } from '@/types';
+import { getFirebaseAuth } from '@/lib/firebaseClient';
 
-let orders = [...mockOrders];
+const NETWORK_ERROR = 'Could not connect to the server. Check your connection and try again.';
 
-const generateTrackingId = (): string => {
-  const year = new Date().getFullYear();
-  const count = orders.length + 1;
-  return `HT-${year}-${String(count).padStart(5, '0')}`;
-};
+async function requestOrderApi<T>(
+  path: string,
+  init: RequestInit = {}
+): Promise<ServiceResponse<T>> {
+  try {
+    const auth = getFirebaseAuth();
+    await auth.authStateReady();
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) {
+      return {
+        success: false,
+        data: null,
+        error: { code: 'UNAUTHENTICATED', message: 'Please sign in to access orders.' },
+      };
+    }
 
-const generateOrderId = (): string => {
-  return `order-${Date.now()}`;
-};
+    const headers = new Headers(init.headers);
+    headers.set('Authorization', `Bearer ${await firebaseUser.getIdToken()}`);
+    if (init.body !== undefined) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    const response = await fetch(path, { ...init, headers });
+    const result = await response.json() as ServiceResponse<T>;
+    if (!response.ok || !result.success) {
+      return {
+        success: false,
+        data: null,
+        error: result.error || {
+          code: `HTTP_${response.status}`,
+          message: 'The order request could not be completed.',
+        },
+      };
+    }
+
+    return { success: true, data: result.data, error: null };
+  } catch (error: unknown) {
+    console.error(`Order API request failed (${path}):`, error);
+    return {
+      success: false,
+      data: null,
+      error: { code: 'NETWORK_ERROR', message: NETWORK_ERROR },
+    };
+  }
+}
 
 export const orderService = {
-  async getOrders(): Promise<ServiceResponse<Order[]>> {
-    return {
-      success: true,
-      data: [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-      error: null,
-    };
+  getOrders(): Promise<ServiceResponse<Order[]>> {
+    return requestOrderApi<Order[]>('/api/orders');
   },
 
-  async getOrdersByCustomerId(customerId: string): Promise<ServiceResponse<Order[]>> {
-    const filtered = orders.filter((order) => order.customerId === customerId);
-    return {
-      success: true,
-      data: filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-      error: null,
-    };
+  getOrdersByCustomerId(customerId: string): Promise<ServiceResponse<Order[]>> {
+    const query = new URLSearchParams({ customerId });
+    return requestOrderApi<Order[]>(`/api/orders?${query.toString()}`);
   },
 
-
-  async getOrderById(id: string): Promise<ServiceResponse<Order | null>> {
-    const order = orders.find((order) => order.id === id);
-    return {
-      success: true,
-      data: order || null,
-      error: order ? null : { code: 'NOT_FOUND', message: 'Order not found' },
-    };
+  getOrderById(id: string): Promise<ServiceResponse<Order | null>> {
+    return requestOrderApi<Order | null>(`/api/orders/${encodeURIComponent(id)}`);
   },
 
-  async getOrderByTrackingId(trackingId: string): Promise<ServiceResponse<Order | null>> {
-    const order = orders.find((order) => order.trackingId === trackingId);
-    return {
-      success: true,
-      data: order || null,
-      error: order ? null : { code: 'NOT_FOUND', message: 'Order not found' },
-    };
+  getOrderByTrackingId(trackingId: string): Promise<ServiceResponse<Order | null>> {
+    const query = new URLSearchParams({ trackingId });
+    return requestOrderApi<Order | null>(`/api/orders?${query.toString()}`);
   },
 
-  async createOrder(
+  createOrder(
     items: CartItem[],
     paymentMethod: PaymentMethod,
-    customerName: string = 'Guest Customer',
-    notes: string = ''
+    customerName = 'Guest Customer',
+    notes = ''
   ): Promise<ServiceResponse<Order>> {
-    const newOrder: Order = {
-      id: generateOrderId(),
-      trackingId: generateTrackingId(),
-      customerId: null,
-      customerName,
-      items,
-      subtotal: items.reduce((sum, item) => sum + item.subtotal, 0),
-      total: items.reduce((sum, item) => sum + item.subtotal, 0),
-      paymentMethod,
-      paymentStatus: paymentMethod === 'online' ? 'pending' : 'paid',
-      orderStatus: paymentMethod === 'online' ? 'Pending Payment' : 'Preparing',
-      notes,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    orders.unshift(newOrder);
-    return {
-      success: true,
-      data: newOrder,
-      error: null,
-    };
+    return requestOrderApi<Order>('/api/orders', {
+      method: 'POST',
+      body: JSON.stringify({ items, paymentMethod, customerName, notes }),
+    });
   },
 
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<ServiceResponse<Order | null>> {
-    const index = orders.findIndex((order) => order.id === orderId);
-    if (index === -1) {
-      return {
-        success: false,
-        data: null,
-        error: { code: 'NOT_FOUND', message: 'Order not found' },
-      };
-    }
-
-    orders[index] = {
-      ...orders[index],
-      orderStatus: status,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      success: true,
-      data: orders[index],
-      error: null,
-    };
+  updateOrderStatus(orderId: string, status: OrderStatus): Promise<ServiceResponse<Order | null>> {
+    return requestOrderApi<Order | null>(`/api/orders/${encodeURIComponent(orderId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ orderStatus: status }),
+    });
   },
 
-  async updatePaymentStatus(orderId: string, status: PaymentStatus): Promise<ServiceResponse<Order | null>> {
-    const index = orders.findIndex((order) => order.id === orderId);
-    if (index === -1) {
-      return {
-        success: false,
-        data: null,
-        error: { code: 'NOT_FOUND', message: 'Order not found' },
-      };
-    }
-
-    orders[index] = {
-      ...orders[index],
-      paymentStatus: status,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      success: true,
-      data: orders[index],
-      error: null,
-    };
+  updatePaymentStatus(orderId: string, status: PaymentStatus): Promise<ServiceResponse<Order | null>> {
+    return requestOrderApi<Order | null>(`/api/orders/${encodeURIComponent(orderId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ paymentStatus: status }),
+    });
   },
 
   async getOrdersByStatus(status: OrderStatus): Promise<ServiceResponse<Order[]>> {
-    const filtered = orders.filter((order) => order.orderStatus === status);
+    const result = await this.getOrders();
+    if (!result.success || !result.data) {
+      return result;
+    }
     return {
       success: true,
-      data: filtered,
+      data: result.data.filter((order) => order.orderStatus === status),
       error: null,
     };
   },
 
   async getActiveOrders(): Promise<ServiceResponse<Order[]>> {
-    const active = orders.filter(
-      (order) => order.orderStatus === 'Preparing' || order.orderStatus === 'Ready for Pickup' || order.orderStatus === 'Pending Payment'
+    const result = await this.getOrders();
+    if (!result.success || !result.data) {
+      return result;
+    }
+    const activeOrders = result.data.filter(
+      (order) => order.orderStatus === 'Preparing'
+        || order.orderStatus === 'Ready for Pickup'
+        || order.orderStatus === 'Pending Payment'
     );
     return {
       success: true,
-      data: active.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+      data: activeOrders.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      ),
       error: null,
     };
-  },
-
-  resetMockData() {
-    orders = [...mockOrders];
   },
 };

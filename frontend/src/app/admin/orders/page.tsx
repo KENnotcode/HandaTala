@@ -18,18 +18,27 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const fetchOrders = useCallback(async () => {
-    setIsLoading(true);
+  const fetchOrders = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const result = await orderService.getOrders();
       if (result.success && result.data) {
         setOrders(result.data);
+        setLoadError(null);
+      } else {
+        const message = result.error?.message || 'Failed to load orders';
+        console.error('Failed to load admin orders:', result.error);
+        setLoadError(message);
+        if (showLoading) toast.error(message);
       }
-    } catch {
-      toast.error('Failed to load orders');
+    } catch (error: unknown) {
+      console.error('Failed to load admin orders:', error);
+      setLoadError('Failed to load orders');
+      if (showLoading) toast.error('Failed to load orders');
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   }, []);
 
@@ -43,11 +52,11 @@ export default function AdminOrdersPage() {
         router.push('/login');
         return;
       }
-      const timeoutId = window.setTimeout(() => {
-        void fetchOrders();
-      }, 0);
-
-      return () => window.clearTimeout(timeoutId);
+      void fetchOrders();
+      const intervalId = window.setInterval(() => {
+        void fetchOrders(false);
+      }, 15000);
+      return () => window.clearInterval(intervalId);
     }
   }, [authLoading, isAdmin, router, fetchOrders]);
 
@@ -58,11 +67,14 @@ export default function AdminOrdersPage() {
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
     try {
       const result = await orderService.updateOrderStatus(orderId, status);
-      if (result.success) {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, orderStatus: status } : o));
-        toast.success(`Order marked as ${status}`);
+      if (!result.success || !result.data) {
+        toast.error(result.error?.message || 'Failed to update order status');
+        return;
       }
-    } catch {
+      setOrders(prev => prev.map(o => o.id === orderId ? result.data! : o));
+      toast.success(`Order marked as ${status}`);
+    } catch (error: unknown) {
+      console.error('Failed to update order status:', error);
       toast.error('Failed to update status');
     }
   };
@@ -98,6 +110,11 @@ export default function AdminOrdersPage() {
         </header>
 
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {loadError && (
+            <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+              {loadError}
+            </div>
+          )}
           {isLoading ? (
             <div className="animate-pulse space-y-4">
               <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded" />
