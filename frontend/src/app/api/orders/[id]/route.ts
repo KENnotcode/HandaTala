@@ -137,6 +137,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    if (currentOrder.orderStatus === 'Completed' && parsed.data.orderStatus !== undefined && parsed.data.orderStatus !== 'Completed') {
+      return errorResponse('FORBIDDEN', 'Completed orders cannot have their status changed.', 403);
+    }
+
     const updates: Partial<Order> = {};
     if (parsed.data.orderStatus !== undefined) {
       updates.orderStatus = parsed.data.orderStatus;

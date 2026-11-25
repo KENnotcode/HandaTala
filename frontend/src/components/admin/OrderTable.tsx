@@ -1,10 +1,11 @@
 import { Order, OrderStatus } from '@/types';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, MoreVertical, Filter } from 'lucide-react';
 import { Button, Badge, Modal } from '@/components/ui';
 import { formatPrice, formatDate } from '@/utils/format';
 import { OrderStatus as OrderStatusComponent } from '@/components/order';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface OrderTableProps {
   orders: Order[];
@@ -32,6 +33,11 @@ export function OrderTable({
   ];
 
   const handleStatusChange = (orderId: string, status: OrderStatus) => {
+    if (showStatusModal?.orderStatus === 'Completed') {
+      toast.error('Completed orders cannot have their status changed.');
+      setShowStatusModal(null);
+      return;
+    }
     onUpdateStatus(orderId, status);
     setShowStatusModal(null);
   };
@@ -132,10 +138,15 @@ export function OrderTable({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (order.orderStatus === 'Completed') {
+                        toast.error('Completed orders cannot have their status changed.');
+                        return;
+                      }
                       setShowStatusModal(order);
                     }}
-                    className="text-gray-400 hover:text-amber-600"
+                    className={`text-gray-400 hover:text-amber-600 ${order.orderStatus === 'Completed' ? 'opacity-50 cursor-not-allowed' : ''}`}
                     aria-label="Update status"
+                    title={order.orderStatus === 'Completed' ? 'Completed orders cannot have their status changed' : 'Update status'}
                   >
                     <MoreVertical className="w-4 h-4" />
                   </Button>
@@ -250,5 +261,3 @@ export function OrderTable({
     </div>
   );
 }
-
-import { AnimatePresence } from 'framer-motion';
