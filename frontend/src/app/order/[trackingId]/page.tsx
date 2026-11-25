@@ -3,42 +3,81 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowLeft, ChevronRight, Clock, Package, Truck, CheckCircle, RefreshCw, Copy } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Clock, Package, Truck, CheckCircle, RefreshCw, Copy, XCircle } from 'lucide-react';
 import { Button, Card, Badge } from '@/components/ui';
 import { CartButton } from '@/components/cart';
 import { orderService } from '@/services/orderService';
 import { OrderStatus, OrderTimeline } from '@/components/order';
 import { formatPrice, formatDate } from '@/utils/format';
 import { cn } from '@/utils/cn';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Order } from '@/types';
+import type { Order, OrderStatus as OrderStatusValue, OrderStatusEvent } from '@/types';
+
+type TimelineStatus = 'Placed Order' | OrderStatusValue;
+
+function formatTimelineTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return 'Time unavailable';
+  }
+  return new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
 
 export default function OrderTrackingPage() {
-  const searchParams = useSearchParams();
-  const trackingId = searchParams.get('trackingId');
+  const { trackingId } = useParams<{ trackingId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOrder = async () => {
-      if (trackingId) {
+    let isCurrent = true;
+    const fetchOrder = async (showLoading: boolean) => {
+      if (!trackingId) {
+        setOrder(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (showLoading) {
         setIsLoading(true);
-        try {
-          const result = await orderService.getOrderByTrackingId(trackingId);
-          if (result.success && result.data) {
-            setOrder(result.data);
-          } else {
-            toast.error('Order not found');
-          }
-        } catch {
-          toast.error('Failed to load order');
-        } finally {
-          setIsLoading(false);
+        setOrder(null);
+      }
+      try {
+        const result = await orderService.getOrderByTrackingId(trackingId);
+        if (!isCurrent) return;
+        if (result.success && result.data) {
+          setOrder(result.data);
+        } else if (showLoading) {
+          setOrder(null);
+          toast.error(result.error?.message || 'Order not found');
+        } else {
+          console.error('Failed to refresh order details:', result.error);
         }
+      } catch (error: unknown) {
+        if (!isCurrent) return;
+        console.error('Failed to load order details:', error);
+        if (showLoading) {
+          setOrder(null);
+          toast.error('Failed to load order');
+        }
+      } finally {
+        if (isCurrent && showLoading) setIsLoading(false);
       }
     };
-    fetchOrder();
+
+    void fetchOrder(true);
+    const intervalId = window.setInterval(() => void fetchOrder(false), 15000);
+    const refreshOnFocus = () => void fetchOrder(false);
+    window.addEventListener('focus', refreshOnFocus);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshOnFocus);
+    };
   }, [trackingId]);
 
   const copyTrackingId = () => {
@@ -92,10 +131,34 @@ export default function OrderTrackingPage() {
     );
   }
 
-  const statusOrder = ['Preparing', 'Ready for Pickup', 'Completed'];
-  const currentIndex = statusOrder.indexOf(order.orderStatus);
-  const isCompleted = order.orderStatus === 'Completed';
+  const recordedHistory = order.statusHistory || [];
+  const statusHistory: OrderStatusEvent[] = [
+    ...(recordedHistory.some((event) => event.status === 'Placed Order')
+      ? []
+      : [{ status: 'Placed Order' as const, timestamp: order.createdAt }]),
+    ...recordedHistory,
+    ...(recordedHistory.some((event) => event.status === order.orderStatus)
+      ? []
+      : [{ status: order.orderStatus, timestamp: order.updatedAt }]),
+  ];
+  const timestampByStatus = new Map<TimelineStatus, string>();
+  statusHistory.forEach((event) => timestampByStatus.set(event.status, event.timestamp));
+
+  const hasPendingPayment = statusHistory.some((event) => event.status === 'Pending Payment');
   const isCancelled = order.orderStatus === 'Cancelled';
+  const previousStatuses: OrderStatusValue[] = ['Preparing', 'Ready for Pickup', 'Completed'];
+  const timelineStatuses: TimelineStatus[] = isCancelled
+    ? [
+      'Placed Order',
+      ...(hasPendingPayment ? ['Pending Payment' as const] : []),
+      ...previousStatuses.filter((status) => statusHistory.some((event) => event.status === status)),
+      'Cancelled',
+    ]
+    : [
+      'Placed Order',
+      ...(hasPendingPayment ? ['Pending Payment' as const] : []),
+      ...previousStatuses,
+    ];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -214,52 +277,57 @@ export default function OrderTrackingPage() {
                 </Card>
               )}
 
-              {!isCompleted && !isCancelled && (
-                <Card className="p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Estimated Timeline</h2>
-                  <div className="space-y-4">
-                    {statusOrder.map((status, index) => {
-                      const isPast = index < currentIndex;
-                      const isCurrent = index === currentIndex;
-                      
-                      return (
-                        <motion.div
-                          key={status}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-center gap-4"
-                        >
-                          <div className={cn(
-                            'w-10 h-10 rounded-full flex items-center justify-center shrink-0',
-                            isPast ? 'bg-green-100 dark:bg-green-900/30 text-green-600' :
-                            isCurrent ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 animate-pulse' :
-                            'bg-gray-100 dark:bg-gray-800 text-gray-400'
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Order Timeline</h2>
+                <div className="space-y-4">
+                  {timelineStatuses.map((status, index) => {
+                    const timestamp = timestampByStatus.get(status);
+                    const isCurrent = status === order.orderStatus;
+                    const isPast = Boolean(timestamp) && !isCurrent;
+
+                    return (
+                      <motion.div
+                        key={status}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="flex items-center gap-4"
+                      >
+                        <div className={cn(
+                          'w-10 h-10 rounded-full flex items-center justify-center shrink-0',
+                          status === 'Cancelled' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
+                          isPast ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                          isCurrent ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 animate-pulse' :
+                          'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                        )}>
+                          {status === 'Ready for Pickup' ? (
+                            <Truck className="w-5 h-5" />
+                          ) : status === 'Completed' ? (
+                            <CheckCircle className="w-5 h-5" />
+                          ) : status === 'Cancelled' ? (
+                            <XCircle className="w-5 h-5" />
+                          ) : status === 'Pending Payment' ? (
+                            <Clock className="w-5 h-5" />
+                          ) : (
+                            <Package className="w-5 h-5" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className={cn(
+                            'font-medium',
+                            isPast || isCurrent ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'
                           )}>
-                            {isPast ? (
-                              <CheckCircle className="w-5 h-5" />
-                            ) : status === 'Preparing' ? (
-                              <Package className="w-5 h-5" />
-                            ) : status === 'Ready for Pickup' ? (
-                              <Truck className="w-5 h-5" />
-                            ) : (
-                              <CheckCircle className="w-5 h-5" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <p className={cn('font-medium', isPast || isCurrent ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400')}>
-                              {status}
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {isPast ? 'Completed' : isCurrent ? 'In progress...' : 'Pending'}
-                            </p>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </Card>
-              )}
+                            {status}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {timestamp ? formatTimelineTimestamp(timestamp) : 'Waiting for this step'}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </Card>
             </div>
 
             <div className="lg:col-span-1">

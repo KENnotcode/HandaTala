@@ -195,6 +195,13 @@ export async function POST(request: NextRequest) {
       notes: parsed.data.notes,
       createdAt: now,
       updatedAt: now,
+      statusHistory: [
+        { status: 'Placed Order', timestamp: now },
+        {
+          status: parsed.data.paymentMethod === 'online' ? 'Pending Payment' : 'Preparing',
+          timestamp: now,
+        },
+      ],
     };
 
     await orderRef.set(order);

@@ -22,6 +22,18 @@ export interface CartItem {
   image?: string;
 }
 
+export type OrderStatus =
+  | 'Preparing'
+  | 'Ready for Pickup'
+  | 'Completed'
+  | 'Pending Payment'
+  | 'Cancelled';
+
+export interface OrderStatusEvent {
+  status: 'Placed Order' | OrderStatus;
+  timestamp: string;
+}
+
 export interface Order {
   id: string;
   trackingId: string;
@@ -32,10 +44,11 @@ export interface Order {
   total: number;
   paymentMethod: 'online' | 'counter' | 'cash';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
-  orderStatus: 'Preparing' | 'Ready for Pickup' | 'Completed' | 'Pending Payment' | 'Cancelled';
+  orderStatus: OrderStatus;
   notes: string;
   createdAt: string;
   updatedAt: string;
+  statusHistory?: OrderStatusEvent[];
 }
 
 export interface InventoryItem {
@@ -97,6 +110,5 @@ export interface ServiceResponse<T> {
   } | null;
 }
 
-export type OrderStatus = Order['orderStatus'];
 export type PaymentStatus = Payment['status'];
 export type PaymentMethod = Order['paymentMethod'];

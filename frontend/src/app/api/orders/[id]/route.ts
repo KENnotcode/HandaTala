@@ -151,6 +151,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const updatedAt = new Date().toISOString();
+    const nextOrderStatus = updates.orderStatus || currentOrder.orderStatus;
+    if (nextOrderStatus !== currentOrder.orderStatus) {
+      updates.statusHistory = [
+        ...(currentOrder.statusHistory || [
+          { status: 'Placed Order', timestamp: currentOrder.createdAt },
+        ]),
+        { status: nextOrderStatus, timestamp: updatedAt },
+      ];
+    }
+
     await orderRef.update({ ...updates, updatedAt });
     const order = { ...currentOrder, ...updates, updatedAt };
 
