@@ -53,6 +53,7 @@ const menuItemSchema = z.object({
   costPrice: z.number().min(0, 'Cost price must be >= 0'),
   image: z.string().optional().default('/images/placeholder.jpg'),
   stock: z.number().int().min(0, 'Stock must be integer >= 0').optional().default(50),
+  lowStockThreshold: z.number().int().min(0).optional().default(5),
   isAvailable: z.boolean().optional().default(true),
   isFeatured: z.boolean().optional().default(false),
   preparationTime: z.number().int().min(0).optional().default(10),

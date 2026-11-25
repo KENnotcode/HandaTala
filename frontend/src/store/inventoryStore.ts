@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { InventoryItem, MenuItem } from '@/types';
 import { inventoryService } from '@/services/inventoryService';
 import { menuService } from '@/services/menuService';
-import { mockInventory } from '@/data/mockInventory';
 
 interface InventoryState {
   inventory: InventoryItem[];
@@ -21,7 +20,7 @@ interface InventoryState {
 }
 
 export const useInventoryStore = create<InventoryState>((set, get) => ({
-  inventory: [...mockInventory],
+  inventory: [],
   menuItems: [],
   isLoading: false,
   error: null,

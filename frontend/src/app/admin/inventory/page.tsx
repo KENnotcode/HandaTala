@@ -41,19 +41,28 @@ export default function AdminInventoryPage() {
     checkAuth();
   }, [checkAuth]);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const [invResult, menuResult] = await Promise.all([
         inventoryService.getInventory(),
         menuService.getMenuItems(),
       ]);
-      if (invResult.success && invResult.data) setInventory(invResult.data);
-      if (menuResult.success && menuResult.data) setMenuItems(menuResult.data);
-    } catch {
-      toast.error('Failed to load inventory');
+      if (!invResult.success || !invResult.data) {
+        throw new Error(invResult.error?.message || 'Failed to load inventory');
+      }
+      if (!menuResult.success || !menuResult.data) {
+        throw new Error(menuResult.error?.message || 'Failed to load menu items');
+      }
+      setInventory(invResult.data);
+      setMenuItems(menuResult.data);
+    } catch (error: unknown) {
+      console.error('Failed to load inventory:', error);
+      if (showLoading) {
+        toast.error(error instanceof Error ? error.message : 'Failed to load inventory');
+      }
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   }, []);
 
@@ -63,11 +72,14 @@ export default function AdminInventoryPage() {
         router.push('/login');
         return;
       }
-      const timeoutId = window.setTimeout(() => {
-        void fetchData();
-      }, 0);
-
-      return () => window.clearTimeout(timeoutId);
+      void fetchData();
+      const refreshInventory = () => void fetchData(false);
+      window.addEventListener('focus', refreshInventory);
+      const intervalId = window.setInterval(refreshInventory, 30000);
+      return () => {
+        window.removeEventListener('focus', refreshInventory);
+        window.clearInterval(intervalId);
+      };
     }
   }, [authLoading, isAdmin, router, fetchData]);
 
@@ -95,14 +107,18 @@ export default function AdminInventoryPage() {
   const handleUpdateStock = async (menuItemId: string, quantity: number) => {
     try {
       const result = await inventoryService.updateStock(menuItemId, quantity);
-      if (result.success) {
-        setInventory(prev => prev.map(item => 
-          item.menuItemId === menuItemId ? { ...item, stock: quantity, isAvailable: quantity > 0 && item.isAvailable } : item
-        ));
-        await menuService.updateMenuItem(menuItemId, { stock: quantity });
-        toast.success('Stock updated');
+      if (!result.success || !result.data) {
+        toast.error(result.error?.message || 'Failed to update stock');
+        return;
       }
-    } catch {
+      setInventory(prev => prev.map(item => item.menuItemId === menuItemId ? result.data! : item));
+      setMenuItems(prev => prev.map(item => item.id === menuItemId
+        ? { ...item, stock: result.data!.stock, isAvailable: result.data!.isAvailable, updatedAt: result.data!.updatedAt }
+        : item
+      ));
+      toast.success('Stock updated');
+    } catch (error: unknown) {
+      console.error('Failed to update stock:', error);
       toast.error('Failed to update stock');
     }
   };
@@ -110,15 +126,18 @@ export default function AdminInventoryPage() {
   const handleSetAvailability = async (menuItemId: string, isAvailable: boolean) => {
     try {
       const result = await inventoryService.setAvailability(menuItemId, isAvailable);
-      if (result.success) {
-        setInventory(prev => prev.map(item => 
-          item.menuItemId === menuItemId ? { ...item, isAvailable } : item
-        ));
-        const menuItem = menuItemsMap.get(menuItemId);
-        if (menuItem) await menuService.updateMenuItem(menuItemId, { isAvailable });
-        toast.success(isAvailable ? 'Item is now available' : 'Item hidden');
+      if (!result.success || !result.data) {
+        toast.error(result.error?.message || 'Failed to update availability');
+        return;
       }
-    } catch {
+      setInventory(prev => prev.map(item => item.menuItemId === menuItemId ? result.data! : item));
+      setMenuItems(prev => prev.map(item => item.id === menuItemId
+        ? { ...item, isAvailable: result.data!.isAvailable, updatedAt: result.data!.updatedAt }
+        : item
+      ));
+      toast.success(isAvailable ? 'Item is now available' : 'Item hidden');
+    } catch (error: unknown) {
+      console.error('Failed to update availability:', error);
       toast.error('Failed to update availability');
     }
   };
@@ -130,12 +149,16 @@ export default function AdminInventoryPage() {
 
   const handleDelete = async (menuItemId: string) => {
     try {
-      await inventoryService.updateStock(menuItemId, 0);
-      await menuService.deleteMenuItem(menuItemId);
+      const result = await menuService.deleteMenuItem(menuItemId);
+      if (!result.success) {
+        toast.error(result.error?.message || 'Failed to delete item');
+        return;
+      }
       setInventory(prev => prev.filter(item => item.menuItemId !== menuItemId));
       setMenuItems(prev => prev.filter(item => item.id !== menuItemId));
       toast.success('Item deleted');
-    } catch {
+    } catch (error: unknown) {
+      console.error('Failed to delete item:', error);
       toast.error('Failed to delete item');
     }
   };
@@ -144,14 +167,16 @@ export default function AdminInventoryPage() {
     e.preventDefault();
     try {
       const result = await menuService.addMenuItem(newItem);
-      if (result.success && result.data) {
-        await inventoryService.updateStock(result.data.id, newItem.stock);
-        toast.success('Item added successfully');
-        setShowAddModal(false);
-        setNewItem({ name: '', description: '', category: 'Rice Meals', price: 0, costPrice: 0, stock: 0, isAvailable: true, isFeatured: false, preparationTime: 10, image: '/images/placeholder.jpg' });
-        fetchData();
+      if (!result.success || !result.data) {
+        toast.error(result.error?.message || 'Failed to add item');
+        return;
       }
-    } catch {
+      toast.success('Item added successfully');
+      setShowAddModal(false);
+      setNewItem({ name: '', description: '', category: 'Rice Meals', price: 0, costPrice: 0, stock: 0, isAvailable: true, isFeatured: false, preparationTime: 10, image: '/images/placeholder.jpg' });
+      void fetchData();
+    } catch (error: unknown) {
+      console.error('Failed to add inventory item:', error);
       toast.error('Failed to add item');
     }
   };

@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
         return errorResponse('ITEM_UNAVAILABLE', `${menuItem.name || item.name} is unavailable.`, 409);
       }
       if (typeof menuItem.stock === 'number' && menuItem.stock < item.quantity) {
-        return errorResponse('INSUFFICIENT_STOCK', `Not enough stock for ${menuItem.name || item.name}.`, 409);
+        return errorResponse('INSUFFICIENT_STOCK', 'We cannot process your order as we do not have enough stocks', 409);
       }
       if (typeof menuItem.price !== 'number' || !Number.isFinite(menuItem.price)) {
         return errorResponse('INVALID_MENU_PRICE', `Price for ${item.name} is unavailable.`, 409);

@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
         const completed = orders.filter(o => o.orderStatus === 'Completed').length;
         
         const todayRevenue = todayOrders
-          .filter(o => o.paymentStatus === 'paid')
+          .filter(o => o.paymentStatus === 'paid' && o.orderStatus !== 'Cancelled')
           .reduce((sum, o) => sum + o.total, 0);
 
         setStats({

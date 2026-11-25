@@ -51,6 +51,7 @@ const updateSchema = z.object({
   costPrice: z.number().min(0).optional(),
   image: z.string().optional(),
   stock: z.number().int().min(0).optional(),
+  lowStockThreshold: z.number().int().min(0).optional(),
   isAvailable: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   preparationTime: z.number().int().min(0).optional(),

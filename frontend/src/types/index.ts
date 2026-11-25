@@ -7,9 +7,11 @@ export interface MenuItem {
   costPrice: number;
   image: string;
   stock: number;
+  lowStockThreshold?: number;
   isAvailable: boolean;
   isFeatured: boolean;
   preparationTime: number;
+  updatedAt?: string | null;
 }
 
 export interface CartItem {
