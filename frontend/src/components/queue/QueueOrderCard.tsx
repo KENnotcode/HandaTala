@@ -1,6 +1,6 @@
-import { Order } from '@/types';
+import { Order, OrderStatus as OrderStatusType } from '@/types';
 import { motion } from 'framer-motion';
-import { ChefHat, Truck, CheckCircle, AlertCircle } from 'lucide-react';
+import { ChefHat, Truck, CheckCircle, AlertCircle, Clock, XCircle } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { OrderStatus } from '@/components/order';
 import { formatDate } from '@/utils/format';
@@ -8,52 +8,79 @@ import { cn } from '@/utils/cn';
 
 interface QueueOrderCardProps {
   order: Order;
-  onStatusChange: (orderId: string, status: 'Preparing' | 'Ready for Pickup' | 'Completed') => void;
+  onStatusChange: (orderId: string, status: OrderStatusType) => void;
   isActive?: boolean;
 }
 
 type StatusConfig = {
-  icon: typeof ChefHat;
+  icon: typeof ChefHat | typeof Clock | typeof Truck | typeof CheckCircle | typeof XCircle;
   color: string;
   bgColor: string;
   borderColor: string;
-  nextStatus?: 'Ready for Pickup' | 'Completed';
+  nextStatus?: 'Preparing' | 'Ready for Pickup' | 'Completed';
   nextLabel?: string;
-  nextIcon?: typeof Truck;
+  nextIcon?: typeof ChefHat | typeof Truck | typeof CheckCircle;
+  badgeStyle: string;
+  buttonStyle: string;
 };
 
-const statusConfig: Record<'Preparing' | 'Ready for Pickup' | 'Completed', StatusConfig> = {
+const statusConfig: Record<'Received' | 'Preparing' | 'Ready for Pickup' | 'Completed' | 'Cancelled', StatusConfig> = {
+  Received: {
+    icon: Clock,
+    color: 'purple',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+    borderColor: 'border-purple-200 dark:border-purple-800',
+    nextStatus: 'Preparing',
+    nextLabel: 'Start Preparing',
+    nextIcon: ChefHat,
+    badgeStyle: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+    buttonStyle: 'bg-purple-600 hover:bg-purple-700 text-white',
+  },
   Preparing: { 
     icon: ChefHat, 
     color: 'blue', 
     bgColor: 'bg-blue-50 dark:bg-blue-900/20',
     borderColor: 'border-blue-200 dark:border-blue-800',
-    nextStatus: 'Ready for Pickup' as const,
+    nextStatus: 'Ready for Pickup',
     nextLabel: 'Mark Ready',
     nextIcon: Truck,
+    badgeStyle: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    buttonStyle: 'bg-blue-600 hover:bg-blue-700 text-white',
   },
   'Ready for Pickup': { 
     icon: Truck, 
     color: 'amber', 
     bgColor: 'bg-amber-50 dark:bg-amber-900/20',
     borderColor: 'border-amber-200 dark:border-amber-800',
-    nextStatus: 'Completed' as const,
+    nextStatus: 'Completed',
     nextLabel: 'Mark Completed',
     nextIcon: CheckCircle,
+    badgeStyle: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+    buttonStyle: 'bg-amber-600 hover:bg-amber-700 text-white',
   },
   Completed: { 
     icon: CheckCircle, 
     color: 'green', 
     bgColor: 'bg-green-50 dark:bg-green-900/20',
     borderColor: 'border-green-200 dark:border-green-800',
+    badgeStyle: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+    buttonStyle: 'bg-green-600 hover:bg-green-700 text-white',
+  },
+  Cancelled: { 
+    icon: XCircle, 
+    color: 'red', 
+    bgColor: 'bg-red-50 dark:bg-red-900/20',
+    borderColor: 'border-red-200 dark:border-red-800',
+    badgeStyle: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+    buttonStyle: 'bg-red-600 hover:bg-red-700 text-white',
   },
 };
 
 export function QueueOrderCard({ order, onStatusChange, isActive = true }: QueueOrderCardProps) {
-  const config = statusConfig[order.orderStatus as keyof typeof statusConfig] || statusConfig.Preparing;
+  const config = statusConfig[order.orderStatus as keyof typeof statusConfig] || statusConfig.Received;
   const Icon = config.icon;
   const timeAgo = getTimeAgo(order.createdAt);
-  const isOverdue = getMinutesAgo(order.createdAt) > 30 && order.orderStatus === 'Preparing';
+  const isOverdue = getMinutesAgo(order.createdAt) > 30 && (order.orderStatus === 'Preparing' || order.orderStatus === 'Received');
 
   return (
     <motion.div
@@ -70,7 +97,7 @@ export function QueueOrderCard({ order, onStatusChange, isActive = true }: Queue
     >
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center shrink-0', `bg-${config.color}-100 dark:bg-${config.color}-900/30 text-${config.color}-600 dark:text-${config.color}-400`)}>
+          <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center shrink-0', config.badgeStyle)}>
             <Icon className="w-6 h-6" />
           </div>
           <div className="min-w-0">
@@ -127,22 +154,47 @@ export function QueueOrderCard({ order, onStatusChange, isActive = true }: Queue
       )}
 
       {config.nextStatus && config.nextIcon && config.nextLabel && (
-        <Button
-          onClick={() => onStatusChange(order.id, config.nextStatus!)}
-          fullWidth
-          size="lg"
-          leftIcon={<config.nextIcon className="w-4 h-4" />}
-          className={cn(`bg-${config.color}-600 hover:bg-${config.color}-700`, isActive ? '' : 'opacity-50 cursor-not-allowed')}
-          disabled={!isActive}
-        >
-          {config.nextLabel}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            onClick={() => onStatusChange(order.id, config.nextStatus!)}
+            fullWidth
+            size="lg"
+            leftIcon={<config.nextIcon className="w-4 h-4" />}
+            className={cn(config.buttonStyle, isActive ? '' : 'opacity-50 cursor-not-allowed')}
+            disabled={!isActive}
+          >
+            {config.nextLabel}
+          </Button>
+          {isActive && (
+            <Button
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to cancel order #${order.trackingId}?`)) {
+                  onStatusChange(order.id, 'Cancelled');
+                }
+              }}
+              fullWidth
+              size="sm"
+              variant="ghost"
+              leftIcon={<XCircle className="w-3.5 h-3.5" />}
+              className="text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs py-1"
+            >
+              Cancel Order
+            </Button>
+          )}
+        </div>
       )}
 
       {order.orderStatus === 'Completed' && (
         <div className="text-center text-sm text-green-600 dark:text-green-400 font-medium">
           <CheckCircle className="w-4 h-4 inline mr-1" />
           Completed
+        </div>
+      )}
+
+      {order.orderStatus === 'Cancelled' && (
+        <div className="text-center text-sm text-red-600 dark:text-red-400 font-medium">
+          <XCircle className="w-4 h-4 inline mr-1" />
+          Cancelled
         </div>
       )}
     </motion.div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { ChefHat, Truck, CheckCircle, RefreshCw, Volume2, VolumeX, Clock } from 'lucide-react';
+import { ChefHat, Truck, CheckCircle, RefreshCw, Volume2, VolumeX, Clock, Inbox, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { QueueColumn } from './QueueColumn';
 import { useQueueStore } from '@/store/queueStore';
@@ -10,12 +10,16 @@ import { useEffect, useState } from 'react';
 
 export function QueueBoard() {
   const { 
+    receivedOrders,
     preparingOrders, 
     readyOrders, 
     completedOrders, 
+    cancelledOrders,
     fetchQueue, 
+    moveToPreparing,
     moveToReady, 
     moveToCompleted,
+    cancelOrder,
     isLoading 
   } = useQueueStore();
 
@@ -42,12 +46,17 @@ export function QueueBoard() {
   }, [autoRefresh, fetchQueue]);
 
   const handleStatusChange = (orderId: string, status: OrderStatus) => {
-    if (status === 'Ready for Pickup') {
+    if (status === 'Preparing') {
+      moveToPreparing(orderId);
+      if (soundEnabled) playNotificationSound();
+    } else if (status === 'Ready for Pickup') {
       moveToReady(orderId);
       if (soundEnabled) playNotificationSound();
     } else if (status === 'Completed') {
       moveToCompleted(orderId);
       if (soundEnabled) playNotificationSound();
+    } else if (status === 'Cancelled') {
+      cancelOrder(orderId);
     }
   };
 
@@ -60,7 +69,7 @@ export function QueueBoard() {
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="max-w-7xl 2xl:max-w-full mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
               <ChefHat className="w-8 h-8 text-amber-600 dark:text-amber-400" />
@@ -101,8 +110,17 @@ export function QueueBoard() {
       </header>
 
       <main className="flex-1 overflow-auto p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="max-w-7xl 2xl:max-w-full mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <QueueColumn
+              title="Received"
+              status="Received"
+              orders={receivedOrders}
+              onStatusChange={handleStatusChange}
+              icon={<Inbox className="w-6 h-6" />}
+              color="purple"
+              emptyMessage="No received orders"
+            />
             <QueueColumn
               title="Preparing"
               status="Preparing"
@@ -129,6 +147,15 @@ export function QueueBoard() {
               icon={<CheckCircle className="w-6 h-6" />}
               color="green"
               emptyMessage="No completed orders"
+            />
+            <QueueColumn
+              title="Cancelled"
+              status="Cancelled"
+              orders={cancelledOrders}
+              onStatusChange={handleStatusChange}
+              icon={<XCircle className="w-6 h-6" />}
+              color="red"
+              emptyMessage="No cancelled orders"
             />
           </div>
         </div>

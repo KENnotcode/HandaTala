@@ -10,7 +10,7 @@ interface QueueColumnProps {
   orders: Order[];
   onStatusChange: (orderId: string, status: OrderStatus) => void;
   icon: React.ReactNode;
-  color: 'blue' | 'amber' | 'green';
+  color: 'purple' | 'blue' | 'amber' | 'green' | 'red';
   emptyMessage?: string;
 }
 
@@ -24,27 +24,31 @@ export function QueueColumn({
   emptyMessage 
 }: QueueColumnProps) {
   const colorStyles = {
+    purple: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
     blue: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
     amber: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800',
     green: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
+    red: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
   };
 
   const textColors = {
+    purple: 'text-purple-600 dark:text-purple-400',
     blue: 'text-blue-600 dark:text-blue-400',
     amber: 'text-amber-600 dark:text-amber-400',
     green: 'text-green-600 dark:text-green-400',
+    red: 'text-red-600 dark:text-red-400',
   };
 
   return (
     <motion.div
-      className="flex-1 min-w-75 max-w-100 flex flex-col"
+      className="flex-1 min-w-0 flex flex-col"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
       <div className={cn('p-4 rounded-t-xl border-b', colorStyles[color], 'border')}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={cn('p-2 rounded-xl', colorStyles[color])}>
+            <div className={cn('p-2 rounded-xl', colorStyles[color], textColors[color])}>
               {icon}
             </div>
             <div>
@@ -65,7 +69,7 @@ export function QueueColumn({
               key={order.id}
               order={order}
               onStatusChange={onStatusChange}
-              isActive={status !== 'Completed'}
+              isActive={status !== 'Completed' && status !== 'Cancelled'}
             />
           ))
         ) : (
@@ -74,7 +78,7 @@ export function QueueColumn({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <div className={cn('w-16 h-16 rounded-full flex items-center justify-center mb-4', colorStyles[color])}>
+            <div className={cn('w-16 h-16 rounded-full flex items-center justify-center mb-4', colorStyles[color], textColors[color])}>
               {icon}
             </div>
             <p className="text-gray-500 dark:text-gray-400">{emptyMessage || `No orders ${title.toLowerCase()}`}</p>

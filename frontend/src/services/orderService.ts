@@ -112,8 +112,10 @@ export const orderService = {
       return result;
     }
     const activeOrders = result.data.filter(
-      (order) => order.orderStatus === 'Preparing'
+      (order) => order.orderStatus === 'Received'
+        || order.orderStatus === 'Preparing'
         || order.orderStatus === 'Ready for Pickup'
+        || order.orderStatus === 'Pending Payment'
     );
     return {
       success: true,
