@@ -68,16 +68,29 @@ export const orderService = {
     return requestOrderApi<Order | null>(`/api/orders?${query.toString()}`);
   },
 
-  createOrder(
+  async createOrder(
     items: CartItem[],
     paymentMethod: PaymentMethod,
     customerName = 'Guest Customer',
     notes = ''
   ): Promise<ServiceResponse<Order>> {
-    return requestOrderApi<Order>('/api/orders', {
+    const result = await requestOrderApi<Order>('/api/orders', {
       method: 'POST',
       body: JSON.stringify({ items, paymentMethod, customerName, notes }),
     });
+
+    if (result.success && result.data && typeof window !== 'undefined') {
+      try {
+        if ('BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('handatala_orders_channel');
+          bc.postMessage({ type: 'ORDER_CREATED', order: result.data });
+          bc.close();
+        }
+        localStorage.setItem('handatala_latest_order', JSON.stringify({ id: result.data.id, time: Date.now() }));
+      } catch {}
+    }
+
+    return result;
   },
 
   updateOrderStatus(orderId: string, status: OrderStatus): Promise<ServiceResponse<Order | null>> {

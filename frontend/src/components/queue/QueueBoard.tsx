@@ -6,7 +6,9 @@ import { QueueColumn } from './QueueColumn';
 import { useQueueStore } from '@/store/queueStore';
 import { OrderStatus } from '@/types';
 import { cn } from '@/utils/cn';
-import { useEffect, useState } from 'react';
+import { playNotificationSound, unlockAudio } from '@/utils/audio';
+import { toast } from 'sonner';
+import { useEffect, useState, useRef } from 'react';
 
 export function QueueBoard() {
   const { 
@@ -24,17 +26,64 @@ export function QueueBoard() {
   } = useQueueStore();
 
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
+  const isInitialLoad = useRef(true);
+  const knownReceivedIds = useRef<Set<string>>(new Set());
+
+  // Unlock AudioContext on first user interaction anywhere on the document
+  useEffect(() => {
+    const handleUnlock = () => {
+      unlockAudio();
+    };
+    window.addEventListener('click', handleUnlock, { once: true });
+    window.addEventListener('keydown', handleUnlock, { once: true });
+    window.addEventListener('touchstart', handleUnlock, { once: true });
+    return () => {
+      window.removeEventListener('click', handleUnlock);
+      window.removeEventListener('keydown', handleUnlock);
+      window.removeEventListener('touchstart', handleUnlock);
+    };
+  }, []);
+
+  // Poll kitchen orders periodically (every 5 seconds when autoRefresh is active)
   useEffect(() => {
     fetchQueue();
     
     if (autoRefresh) {
-      const interval = setInterval(fetchQueue, 10000);
+      const interval = setInterval(fetchQueue, 5000);
       return () => clearInterval(interval);
     }
   }, [fetchQueue, autoRefresh]);
 
+  // Real-time listener for order creation across tabs / windows
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('handatala_orders_channel');
+        bc.onmessage = (event) => {
+          if (event.data?.type === 'ORDER_CREATED') {
+            fetchQueue();
+          }
+        };
+      }
+    } catch {}
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'handatala_latest_order') {
+        fetchQueue();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      if (bc) bc.close();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [fetchQueue]);
+
+  // Re-fetch when user switches back to this tab
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && autoRefresh) {
@@ -44,6 +93,36 @@ export function QueueBoard() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [autoRefresh, fetchQueue]);
+
+  // Play notification chime and show toast when a new order is received
+  useEffect(() => {
+    if (isLoading && isInitialLoad.current) {
+      return;
+    }
+
+    if (isInitialLoad.current) {
+      knownReceivedIds.current = new Set(receivedOrders.map((o) => o.id));
+      isInitialLoad.current = false;
+      return;
+    }
+
+    const newlyReceived = receivedOrders.filter((order) => !knownReceivedIds.current.has(order.id));
+
+    if (newlyReceived.length > 0) {
+      if (soundEnabled) {
+        unlockAudio();
+        playNotificationSound();
+      }
+      newlyReceived.forEach((order) => {
+        toast.info(`New Order #${order.trackingId}`, {
+          description: `${order.customerName} • ${order.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')}`,
+          duration: 5000,
+        });
+      });
+    }
+
+    knownReceivedIds.current = new Set(receivedOrders.map((o) => o.id));
+  }, [receivedOrders, isLoading, soundEnabled]);
 
   const handleStatusChange = (orderId: string, status: OrderStatus) => {
     if (status === 'Preparing') {
@@ -58,12 +137,6 @@ export function QueueBoard() {
     } else if (status === 'Cancelled') {
       cancelOrder(orderId);
     }
-  };
-
-  const playNotificationSound = () => {
-    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hV0pQ==');
-    audio.volume = 0.3;
-    audio.play().catch(() => {});
   };
 
   return (
@@ -98,10 +171,20 @@ export function QueueBoard() {
               {autoRefresh ? 'Auto-refresh' : 'Manual'}
             </Button>
             <Button
-              variant="ghost"
+              variant={soundEnabled ? 'outline' : 'ghost'}
               size="sm"
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              leftIcon={soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              onClick={() => {
+                const nextState = !soundEnabled;
+                setSoundEnabled(nextState);
+                if (nextState) {
+                  unlockAudio();
+                  playNotificationSound();
+                  toast.success('Sound enabled', { description: 'Test chime played' });
+                } else {
+                  toast.info('Sound muted');
+                }
+              }}
+              leftIcon={soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
             >
               {soundEnabled ? 'Sound On' : 'Sound Off'}
             </Button>
