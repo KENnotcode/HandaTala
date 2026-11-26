@@ -1,7 +1,7 @@
 import { Order } from '@/types';
 import { motion } from 'framer-motion';
 import { formatPrice, formatDate } from '@/utils/format';
-import { Card } from '@/components/ui';
+import { Badge, Card } from '@/components/ui';
 import { OrderStatus } from './OrderStatus';
 
 interface OrderCardProps {
@@ -33,6 +33,9 @@ export function OrderCard({ order, onClick, variant = 'default', showCustomer = 
                 #{order.trackingId}
               </span>
               <OrderStatus status={order.orderStatus} size="sm" />
+              <Badge variant={order.paymentStatus === 'paid' ? 'success' : 'warning'} size="sm">
+                {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+              </Badge>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
               {order.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')}
@@ -106,11 +109,16 @@ export function OrderCard({ order, onClick, variant = 'default', showCustomer = 
             ))}
           </ul>
           
-          <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-            <span className="text-gray-600 dark:text-gray-400">Payment</span>
-            <span className="capitalize text-gray-900 dark:text-gray-100">
-              {order.paymentMethod.replace('-', ' ')}
-            </span>
+          <div className="flex flex-wrap justify-between items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-gray-600 dark:text-gray-400">Payment</span>
+              <span className="capitalize text-gray-900 dark:text-gray-100">
+                {order.paymentMethod.replace('-', ' ')}
+              </span>
+            </div>
+            <Badge variant={order.paymentStatus === 'paid' ? 'success' : 'warning'} size="sm">
+              {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+            </Badge>
           </div>
         </div>
       </Card>

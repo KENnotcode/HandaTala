@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, PaymentStatus, ServiceResponse } from '@/types';
 import { orderService } from '@/services/orderService';
 
 interface QueueState {
@@ -14,6 +14,10 @@ interface QueueState {
   moveToReady: (orderId: string) => Promise<void>;
   moveToCompleted: (orderId: string) => Promise<void>;
   cancelOrder: (orderId: string) => Promise<void>;
+  updatePaymentStatus: (
+    orderId: string,
+    status: PaymentStatus
+  ) => Promise<ServiceResponse<Order | null>>;
   getAllActiveOrders: () => Order[];
 }
 
@@ -138,6 +142,25 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     } catch {
       // Silently fail
     }
+  },
+
+  updatePaymentStatus: async (orderId, status) => {
+    const result = await orderService.updatePaymentStatus(orderId, status);
+    if (result.success && result.data) {
+      set((state) => {
+        const updateOrders = (orders: Order[]) => orders.map((order) =>
+          order.id === orderId ? result.data! : order
+        );
+        return {
+          receivedOrders: updateOrders(state.receivedOrders),
+          preparingOrders: updateOrders(state.preparingOrders),
+          readyOrders: updateOrders(state.readyOrders),
+          completedOrders: updateOrders(state.completedOrders),
+          cancelledOrders: updateOrders(state.cancelledOrders),
+        };
+      });
+    }
+    return result;
   },
 
   getAllActiveOrders: () => {

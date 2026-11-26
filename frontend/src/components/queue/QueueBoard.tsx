@@ -4,7 +4,8 @@ import { ChefHat, Truck, CheckCircle, RefreshCw, Volume2, VolumeX, Clock, Inbox,
 import { Button } from '@/components/ui';
 import { QueueColumn } from './QueueColumn';
 import { useQueueStore } from '@/store/queueStore';
-import { OrderStatus } from '@/types';
+import { useAuthStore } from '@/store/authStore';
+import { OrderStatus, PaymentStatus } from '@/types';
 import { cn } from '@/utils/cn';
 import { playNotificationSound, unlockAudio } from '@/utils/audio';
 import { toast } from 'sonner';
@@ -22,14 +23,20 @@ export function QueueBoard() {
     moveToReady, 
     moveToCompleted,
     cancelOrder,
+    updatePaymentStatus,
     isLoading 
   } = useQueueStore();
+  const { isAdmin, checkAuth } = useAuthStore();
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   const isInitialLoad = useRef(true);
   const knownReceivedIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   // Unlock AudioContext on first user interaction anywhere on the document
   useEffect(() => {
@@ -139,6 +146,15 @@ export function QueueBoard() {
     }
   };
 
+  const handlePaymentStatusChange = async (orderId: string, status: PaymentStatus) => {
+    const result = await updatePaymentStatus(orderId, status);
+    if (!result.success || !result.data) {
+      toast.error(result.error?.message || 'Failed to update payment status');
+      return;
+    }
+    toast.success(`Payment marked as ${status === 'paid' ? 'Paid' : 'Unpaid'}`);
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
       <header className="shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
@@ -200,6 +216,8 @@ export function QueueBoard() {
               status="Received"
               orders={receivedOrders}
               onStatusChange={handleStatusChange}
+              isAdmin={isAdmin}
+              onPaymentStatusChange={handlePaymentStatusChange}
               icon={<Inbox className="w-6 h-6" />}
               color="purple"
               emptyMessage="No received orders"
@@ -209,6 +227,8 @@ export function QueueBoard() {
               status="Preparing"
               orders={preparingOrders}
               onStatusChange={handleStatusChange}
+              isAdmin={isAdmin}
+              onPaymentStatusChange={handlePaymentStatusChange}
               icon={<ChefHat className="w-6 h-6" />}
               color="blue"
               emptyMessage="No orders being prepared"
@@ -218,6 +238,8 @@ export function QueueBoard() {
               status="Ready for Pickup"
               orders={readyOrders}
               onStatusChange={handleStatusChange}
+              isAdmin={isAdmin}
+              onPaymentStatusChange={handlePaymentStatusChange}
               icon={<Truck className="w-6 h-6" />}
               color="amber"
               emptyMessage="No orders ready"
@@ -227,6 +249,8 @@ export function QueueBoard() {
               status="Completed"
               orders={completedOrders}
               onStatusChange={handleStatusChange}
+              isAdmin={isAdmin}
+              onPaymentStatusChange={handlePaymentStatusChange}
               icon={<CheckCircle className="w-6 h-6" />}
               color="green"
               emptyMessage="No completed orders"
@@ -236,6 +260,8 @@ export function QueueBoard() {
               status="Cancelled"
               orders={cancelledOrders}
               onStatusChange={handleStatusChange}
+              isAdmin={isAdmin}
+              onPaymentStatusChange={handlePaymentStatusChange}
               icon={<XCircle className="w-6 h-6" />}
               color="red"
               emptyMessage="No cancelled orders"

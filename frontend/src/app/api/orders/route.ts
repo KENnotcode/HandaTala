@@ -67,6 +67,7 @@ function formatOrder(snapshot: DocumentSnapshot): Order {
   return {
     ...data,
     id: snapshot.id,
+    paymentStatus: data?.paymentStatus ?? 'pending',
     createdAt: formatTimestamp(data?.createdAt),
     updatedAt: formatTimestamp(data?.updatedAt),
   } as Order;
@@ -221,9 +222,6 @@ export async function POST(request: NextRequest) {
 
       const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
       const now = new Date().toISOString();
-      const paymentStatus = user.role === 'admin' && parsed.data.paymentMethod !== 'online'
-        ? 'paid'
-        : 'pending';
       const order: Order = {
         id: orderRef.id,
         trackingId: `HT-${new Date().getFullYear()}-${orderRef.id.slice(0, 8).toUpperCase()}`,
@@ -235,7 +233,7 @@ export async function POST(request: NextRequest) {
         subtotal,
         total: subtotal,
         paymentMethod: parsed.data.paymentMethod,
-        paymentStatus,
+        paymentStatus: 'pending',
         orderStatus: 'Received',
         notes: parsed.data.notes,
         createdAt: now,

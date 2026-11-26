@@ -9,7 +9,6 @@ import { CartButton } from '@/components/cart';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { orderService } from '@/services/orderService';
-import { paymentService } from '@/services/paymentService';
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import { toast } from 'sonner';
@@ -29,7 +28,7 @@ export default function CheckoutPage() {
   const customerPhone = user?.phone || '';
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [order, setOrder] = useState<{ trackingId: string } | null>(null);
+  const [order, setOrder] = useState<{ trackingId: string; paymentStatus: string } | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -83,46 +82,11 @@ export default function CheckoutPage() {
       
       if (result.success && result.data) {
         const newOrder = result.data;
-        setOrder({ trackingId: newOrder.trackingId });
-        
-        if (paymentMethod === 'online') {
-          const paymentResult = await paymentService.initializeCheckout(newOrder);
-          if (paymentResult.success && paymentResult.data) {
-            const payment = paymentResult.data.payment;
-            // Simulate payment processing
-            setTimeout(async () => {
-              const callbackResult = await paymentService.simulatePaymentCallback(
-                payment.id,
-                true
-              );
-              if (!callbackResult.success) {
-                const releaseResult = await orderService.updatePaymentStatus(newOrder.id, 'failed');
-                if (!releaseResult.success) {
-                  console.error('Failed to release order stock after payment error:', releaseResult.error);
-                }
-                toast.error(callbackResult.error?.message || 'Payment could not be completed.');
-                setIsProcessing(false);
-                return;
-              }
-              setStep('success');
-              clearCart();
-              setIsProcessing(false);
-              toast.success('Order placed successfully!');
-            }, 1500);
-          } else {
-            const releaseResult = await orderService.updatePaymentStatus(newOrder.id, 'failed');
-            if (!releaseResult.success) {
-              console.error('Failed to release order stock after checkout initialization error:', releaseResult.error);
-            }
-            toast.error(paymentResult.error?.message || 'Could not start payment. Please try again.');
-            setIsProcessing(false);
-          }
-        } else {
-          setStep('success');
-          clearCart();
-          setIsProcessing(false);
-          toast.success('Order placed! Pay at counter when you pick up.');
-        }
+        setOrder({ trackingId: newOrder.trackingId, paymentStatus: newOrder.paymentStatus });
+        setStep('success');
+        clearCart();
+        setIsProcessing(false);
+        toast.success('Order placed! Payment status is unpaid until payment is confirmed.');
       } else {
         toast.error(result.error?.message || 'Failed to place order. Please try again.');
         setIsProcessing(false);
@@ -178,7 +142,7 @@ export default function CheckoutPage() {
               Order Placed!
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mb-8">
-              Your order has been confirmed. Track your order using the tracking number below.
+              Your order has been received. Payment is not yet recorded. Track your order using the tracking number below.
             </p>
             
             <Card className="mb-8 p-6">
@@ -189,8 +153,8 @@ export default function CheckoutPage() {
                 </p>
               </div>
               <div className="flex justify-center gap-2">
-                <Badge variant="success" size="md">
-                  {paymentMethod === 'online' ? 'Paid' : 'Pay at Counter'}
+                <Badge variant={order.paymentStatus === 'paid' ? 'success' : 'warning'} size="md">
+                  {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
                 </Badge>
               </div>
             </Card>

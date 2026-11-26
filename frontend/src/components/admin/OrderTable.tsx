@@ -1,4 +1,4 @@
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, PaymentStatus } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, MoreVertical, Filter } from 'lucide-react';
 import { Button, Badge, Modal } from '@/components/ui';
@@ -11,6 +11,7 @@ interface OrderTableProps {
   orders: Order[];
   onViewOrder: (order: Order) => void;
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;
+  onUpdatePaymentStatus: (orderId: string, status: PaymentStatus) => Promise<Order | null>;
   filterStatus?: OrderStatus | 'all';
   onFilterChange: (status: OrderStatus | 'all') => void;
 }
@@ -19,11 +20,13 @@ export function OrderTable({
   orders, 
   onViewOrder, 
   onUpdateStatus,
+  onUpdatePaymentStatus,
   filterStatus,
   onFilterChange 
 }: OrderTableProps) {
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [showStatusModal, setShowStatusModal] = useState<Order | null>(null);
+  const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null);
 
   const statusOptions: { value: OrderStatus; label: string }[] = [
     { value: 'Preparing', label: 'Preparing' },
@@ -40,6 +43,31 @@ export function OrderTable({
     }
     onUpdateStatus(orderId, status);
     setShowStatusModal(null);
+  };
+
+  const handlePaymentStatusChange = async (order: Order) => {
+    if (updatingPaymentId) return;
+    const status: PaymentStatus = order.paymentStatus === 'paid' ? 'pending' : 'paid';
+    setUpdatingPaymentId(order.id);
+    try {
+      const updatedOrder = await onUpdatePaymentStatus(order.id, status);
+      if (updatedOrder) {
+        setViewOrder((current) => current?.id === order.id ? updatedOrder : current);
+      }
+    } finally {
+      setUpdatingPaymentId(null);
+    }
+  };
+
+  const paymentLabel = (status: PaymentStatus) => {
+    if (status === 'pending') return 'Unpaid';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const paymentVariant = (status: PaymentStatus): 'success' | 'warning' | 'danger' => {
+    if (status === 'paid') return 'success';
+    if (status === 'pending') return 'warning';
+    return 'danger';
   };
 
   return (
@@ -110,9 +138,24 @@ export function OrderTable({
                 {formatPrice(order.total)}
               </td>
               <td className="p-3">
-                <Badge variant={order.paymentStatus === 'paid' ? 'success' : order.paymentStatus === 'pending' ? 'warning' : 'danger'} size="sm">
-                  {order.paymentStatus}
-                </Badge>
+                <div className="flex min-w-24 flex-col items-start gap-2">
+                  <Badge variant={paymentVariant(order.paymentStatus)} size="sm">
+                    {paymentLabel(order.paymentStatus)}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={updatingPaymentId !== null}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handlePaymentStatusChange(order);
+                    }}
+                  >
+                    {updatingPaymentId === order.id
+                      ? 'Saving...'
+                      : order.paymentStatus === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
+                  </Button>
+                </div>
               </td>
               <td className="p-3">
                 <OrderStatusComponent status={order.orderStatus} size="sm" />
@@ -184,9 +227,21 @@ export function OrderTable({
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Payment Status</p>
-                  <Badge variant={viewOrder.paymentStatus === 'paid' ? 'success' : 'warning'}>
-                    {viewOrder.paymentStatus}
-                  </Badge>
+                  <div className="mt-1 flex flex-col items-start gap-2">
+                    <Badge variant={paymentVariant(viewOrder.paymentStatus)}>
+                      {paymentLabel(viewOrder.paymentStatus)}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={updatingPaymentId !== null}
+                      onClick={() => void handlePaymentStatusChange(viewOrder)}
+                    >
+                      {updatingPaymentId === viewOrder.id
+                        ? 'Saving...'
+                        : viewOrder.paymentStatus === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Order Status</p>

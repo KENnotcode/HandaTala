@@ -229,7 +229,9 @@ export default function OrderTrackingPage() {
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Payment Status</p>
                     <Badge variant={order.paymentStatus === 'paid' ? 'success' : order.paymentStatus === 'pending' ? 'warning' : 'danger'}>
-                      {order.paymentStatus}
+                      {order.paymentStatus === 'pending'
+                        ? 'Unpaid'
+                        : order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
                     </Badge>
                   </div>
                   <div>

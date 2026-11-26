@@ -57,6 +57,7 @@ function formatOrder(
   return {
     ...data,
     id,
+    paymentStatus: data.paymentStatus ?? 'pending',
     createdAt: formatTimestamp(data.createdAt),
     updatedAt: formatTimestamp(data.updatedAt),
   } as Order;
@@ -130,16 +131,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         throw new OrderUpdateError('NOT_FOUND', 404, 'Order not found.');
       }
 
-      if (!isStaff && parsed.data.paymentStatus !== undefined) {
-        const validCustomerPaymentUpdate =
-          currentOrder.paymentMethod === 'online'
-          && currentOrder.paymentStatus === 'pending'
-          && currentOrder.orderStatus !== 'Completed'
-          && currentOrder.orderStatus !== 'Cancelled'
-          && (parsed.data.paymentStatus === 'paid' || parsed.data.paymentStatus === 'failed');
-        if (!validCustomerPaymentUpdate) {
-          throw new OrderUpdateError('FORBIDDEN', 403, 'You cannot update this payment.');
-        }
+      if (parsed.data.paymentStatus !== undefined && user.role !== 'admin') {
+        throw new OrderUpdateError('FORBIDDEN', 403, 'Only admins can update payment status.');
       }
 
       if (!isStaff && parsed.data.orderStatus !== undefined) {
@@ -167,9 +160,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
       if (parsed.data.paymentStatus !== undefined) {
         updates.paymentStatus = parsed.data.paymentStatus;
-        if (!isStaff && parsed.data.paymentStatus === 'failed') {
-          updates.orderStatus = 'Cancelled';
-        }
       }
 
       const updatedAt = new Date().toISOString();

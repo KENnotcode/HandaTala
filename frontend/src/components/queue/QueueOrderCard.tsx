@@ -6,10 +6,14 @@ import { OrderStatus } from '@/components/order';
 import { formatDate } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import { toast } from 'sonner';
+import { useState } from 'react';
+import type { PaymentStatus } from '@/types';
 
 interface QueueOrderCardProps {
   order: Order;
   onStatusChange: (orderId: string, status: OrderStatusType) => void;
+  isAdmin: boolean;
+  onPaymentStatusChange: (orderId: string, status: PaymentStatus) => Promise<void>;
   isActive?: boolean;
 }
 
@@ -77,7 +81,14 @@ const statusConfig: Record<'Received' | 'Preparing' | 'Ready for Pickup' | 'Comp
   },
 };
 
-export function QueueOrderCard({ order, onStatusChange, isActive = true }: QueueOrderCardProps) {
+export function QueueOrderCard({
+  order,
+  onStatusChange,
+  isAdmin,
+  onPaymentStatusChange,
+  isActive = true,
+}: QueueOrderCardProps) {
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
   const config = statusConfig[order.orderStatus as keyof typeof statusConfig] || statusConfig.Received;
   const Icon = config.icon;
   const timeAgo = getTimeAgo(order.createdAt);
@@ -131,6 +142,14 @@ export function QueueOrderCard({ order, onStatusChange, isActive = true }: Queue
                 #{order.trackingId}
               </span>
               <OrderStatus status={order.orderStatus} size="sm" />
+              <Badge
+                variant={order.paymentStatus === 'paid' ? 'success' : order.paymentStatus === 'pending' ? 'warning' : 'danger'}
+                size="sm"
+              >
+                {order.paymentStatus === 'pending'
+                  ? 'Unpaid'
+                  : order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+              </Badge>
               {isOverdue && (
                 <Badge variant="danger" size="sm" className="animate-pulse">
                   <AlertCircle className="w-3 h-3 mr-1" />
@@ -176,6 +195,31 @@ export function QueueOrderCard({ order, onStatusChange, isActive = true }: Queue
             <strong>Note:</strong> {order.notes}
           </div>
         </div>
+      )}
+
+      {isAdmin && (
+        <Button
+          variant="outline"
+          size="sm"
+          fullWidth
+          disabled={isUpdatingPayment}
+          onClick={async () => {
+            setIsUpdatingPayment(true);
+            try {
+              await onPaymentStatusChange(
+                order.id,
+                order.paymentStatus === 'paid' ? 'pending' : 'paid'
+              );
+            } finally {
+              setIsUpdatingPayment(false);
+            }
+          }}
+          className="mb-3"
+        >
+          {isUpdatingPayment
+            ? 'Saving payment status...'
+            : order.paymentStatus === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
+        </Button>
       )}
 
       {config.nextStatus && config.nextIcon && config.nextLabel && (

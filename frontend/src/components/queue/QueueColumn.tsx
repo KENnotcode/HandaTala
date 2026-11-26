@@ -1,4 +1,4 @@
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, PaymentStatus } from '@/types';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui';
 import { cn } from '@/utils/cn';
@@ -9,6 +9,8 @@ interface QueueColumnProps {
   status: OrderStatus;
   orders: Order[];
   onStatusChange: (orderId: string, status: OrderStatus) => void;
+  isAdmin: boolean;
+  onPaymentStatusChange: (orderId: string, status: PaymentStatus) => Promise<void>;
   icon: React.ReactNode;
   color: 'purple' | 'blue' | 'amber' | 'green' | 'red';
   emptyMessage?: string;
@@ -19,6 +21,8 @@ export function QueueColumn({
   status, 
   orders, 
   onStatusChange, 
+  isAdmin,
+  onPaymentStatusChange,
   icon, 
   color,
   emptyMessage 
@@ -69,6 +73,8 @@ export function QueueColumn({
               key={order.id}
               order={order}
               onStatusChange={onStatusChange}
+              isAdmin={isAdmin}
+              onPaymentStatusChange={onPaymentStatusChange}
               isActive={status !== 'Completed' && status !== 'Cancelled'}
             />
           ))

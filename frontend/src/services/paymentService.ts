@@ -1,5 +1,4 @@
-import { Order, Payment, ServiceResponse, PaymentStatus } from '@/types';
-import { orderService } from './orderService';
+import { Order, Payment, ServiceResponse } from '@/types';
 
 let payments: Payment[] = [];
 
@@ -65,60 +64,6 @@ export const paymentService = {
     };
   },
 
-  async processOnlinePayment(paymentId: string): Promise<ServiceResponse<Payment>> {
-    const index = payments.findIndex((p) => p.id === paymentId);
-    if (index === -1) {
-      return {
-        success: false,
-        data: null,
-        error: { code: 'NOT_FOUND', message: 'Payment not found' },
-      };
-    }
-
-    const result = await orderService.updatePaymentStatus(payments[index].orderId, 'paid');
-    if (!result.success || !result.data) {
-      return {
-        success: false,
-        data: null,
-        error: result.error || { code: 'PAYMENT_UPDATE_FAILED', message: 'Could not confirm payment.' },
-      };
-    }
-    payments[index] = { ...payments[index], status: 'paid' };
-
-    return {
-      success: true,
-      data: payments[index],
-      error: null,
-    };
-  },
-
-  async processCounterPayment(paymentId: string): Promise<ServiceResponse<Payment>> {
-    const index = payments.findIndex((p) => p.id === paymentId);
-    if (index === -1) {
-      return {
-        success: false,
-        data: null,
-        error: { code: 'NOT_FOUND', message: 'Payment not found' },
-      };
-    }
-
-    const result = await orderService.updatePaymentStatus(payments[index].orderId, 'paid');
-    if (!result.success || !result.data) {
-      return {
-        success: false,
-        data: null,
-        error: result.error || { code: 'PAYMENT_UPDATE_FAILED', message: 'Could not confirm payment.' },
-      };
-    }
-    payments[index] = { ...payments[index], status: 'paid' };
-
-    return {
-      success: true,
-      data: payments[index],
-      error: null,
-    };
-  },
-
   async getPaymentById(id: string): Promise<ServiceResponse<Payment | null>> {
     const payment = payments.find((p) => p.id === id);
     return {
@@ -134,34 +79,6 @@ export const paymentService = {
       success: true,
       data: payment || null,
       error: payment ? null : { code: 'NOT_FOUND', message: 'Payment not found' },
-    };
-  },
-
-  async simulatePaymentCallback(paymentId: string, success: boolean): Promise<ServiceResponse<Payment>> {
-    const index = payments.findIndex((p) => p.id === paymentId);
-    if (index === -1) {
-      return {
-        success: false,
-        data: null,
-        error: { code: 'NOT_FOUND', message: 'Payment not found' },
-      };
-    }
-
-    const newStatus: PaymentStatus = success ? 'paid' : 'failed';
-    const result = await orderService.updatePaymentStatus(payments[index].orderId, newStatus);
-    if (!result.success || !result.data) {
-      return {
-        success: false,
-        data: null,
-        error: result.error || { code: 'PAYMENT_UPDATE_FAILED', message: 'Could not update payment status.' },
-      };
-    }
-    payments[index] = { ...payments[index], status: newStatus };
-
-    return {
-      success: true,
-      data: payments[index],
-      error: null,
     };
   },
 

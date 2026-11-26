@@ -9,7 +9,7 @@ import { Button } from '@/components/ui';
 import { orderService } from '@/services/orderService';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, PaymentStatus } from '@/types';
 import { useRouter } from 'next/navigation';
 
 export default function AdminOrdersPage() {
@@ -84,6 +84,26 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleUpdatePaymentStatus = async (
+    orderId: string,
+    status: PaymentStatus
+  ): Promise<Order | null> => {
+    try {
+      const result = await orderService.updatePaymentStatus(orderId, status);
+      if (!result.success || !result.data) {
+        toast.error(result.error?.message || 'Failed to update payment status');
+        return null;
+      }
+      setOrders(prev => prev.map(order => order.id === orderId ? result.data! : order));
+      toast.success(`Payment marked as ${status === 'paid' ? 'Paid' : 'Unpaid'}`);
+      return result.data;
+    } catch (error: unknown) {
+      console.error('Failed to update payment status:', error);
+      toast.error('Failed to update payment status');
+      return null;
+    }
+  };
+
   const filteredOrders = orders.filter(order => 
     filterStatus === 'all' || order.orderStatus === filterStatus
   );
@@ -134,6 +154,7 @@ export default function AdminOrdersPage() {
                 orders={filteredOrders}
                 onViewOrder={handleViewOrder}
                 onUpdateStatus={handleUpdateStatus}
+                onUpdatePaymentStatus={handleUpdatePaymentStatus}
                 filterStatus={filterStatus}
                 onFilterChange={setFilterStatus}
               />

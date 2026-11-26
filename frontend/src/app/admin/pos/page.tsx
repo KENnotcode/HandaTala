@@ -9,7 +9,6 @@ import { AdminSidebar } from '@/components/admin';
 import { FoodCard } from '@/components/menu';
 import { Button, Badge, Card, Input, Modal } from '@/components/ui';
 import { orderService } from '@/services/orderService';
-import { paymentService } from '@/services/paymentService';
 import { menuService } from '@/services/menuService';
 import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/store/authStore';
@@ -190,52 +189,17 @@ export default function AdminPOSPage() {
       }
 
       const order = newOrder.data;
-      if (paymentMethod === 'online') {
-        const paymentResult = await paymentService.initializeCheckout(order);
-        if (!paymentResult.success || !paymentResult.data) {
-          const releaseResult = await orderService.updatePaymentStatus(order.id, 'failed');
-          if (!releaseResult.success) {
-            console.error('Failed to release POS order stock after checkout initialization error:', releaseResult.error);
-          }
-          toast.error(paymentResult.error?.message || 'Could not start payment.');
-          setIsProcessing(false);
-          return;
-        }
-        const payment = paymentResult.data.payment;
-        setTimeout(async () => {
-          const callbackResult = await paymentService.simulatePaymentCallback(
-            payment.id,
-            true
-          );
-          if (!callbackResult.success) {
-            const releaseResult = await orderService.updatePaymentStatus(order.id, 'failed');
-            if (!releaseResult.success) {
-              console.error('Failed to release POS order stock after payment error:', releaseResult.error);
-            }
-            toast.error(callbackResult.error?.message || 'Payment could not be completed.');
-            setIsProcessing(false);
-            return;
-          }
-          const refreshedOrder = await orderService.getOrderById(order.id);
-          setLastOrder(refreshedOrder.success && refreshedOrder.data
-            ? refreshedOrder.data
-            : { ...order, paymentStatus: 'paid', stockDeducted: true, stockReserved: false });
-          setShowReceipt(true);
-          setCart([]);
-          setCustomerName('');
-          setNotes('');
-          setIsProcessing(false);
-          toast.success('Order completed!');
-        }, 1000);
-      } else {
-        setLastOrder(order);
-        setShowReceipt(true);
-        setCart([]);
-        setCustomerName('');
-        setNotes('');
-        setIsProcessing(false);
-        toast.success('Order created! Pay at counter.');
-      }
+      setLastOrder(order);
+      setShowReceipt(true);
+      setCart([]);
+      setCustomerName('');
+      setNotes('');
+      setIsProcessing(false);
+      toast.success(
+        paymentMethod === 'online'
+          ? 'Order created! Payment is still unpaid.'
+          : 'Order created! Pay at counter.'
+      );
     } catch (error: unknown) {
       console.error('Failed to process POS order:', error);
       toast.error('Failed to process order');
