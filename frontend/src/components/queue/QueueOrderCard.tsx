@@ -5,6 +5,7 @@ import { Button, Badge } from '@/components/ui';
 import { OrderStatus } from '@/components/order';
 import { formatDate } from '@/utils/format';
 import { cn } from '@/utils/cn';
+import { toast } from 'sonner';
 
 interface QueueOrderCardProps {
   order: Order;
@@ -81,6 +82,30 @@ export function QueueOrderCard({ order, onStatusChange, isActive = true }: Queue
   const Icon = config.icon;
   const timeAgo = getTimeAgo(order.createdAt);
   const isOverdue = getMinutesAgo(order.createdAt) > 30 && (order.orderStatus === 'Preparing' || order.orderStatus === 'Received');
+
+  const handleCancelOrder = () => {
+    toast.warning(`Cancel order #${order.trackingId}?`, {
+      id: `cancel-${order.id}`,
+      description: 'Are you sure you want to cancel this order? Stock will be released.',
+      duration: 8000,
+      action: {
+        label: 'Yes, Cancel',
+        onClick: () => {
+          onStatusChange(order.id, 'Cancelled');
+          toast.error(`Order #${order.trackingId} was cancelled.`);
+        },
+      },
+      cancel: {
+        label: 'Keep Order',
+        onClick: () => {},
+      },
+      actionButtonStyle: {
+        backgroundColor: '#dc2626',
+        color: '#ffffff',
+        fontWeight: '600',
+      },
+    });
+  };
 
   return (
     <motion.div
@@ -167,11 +192,7 @@ export function QueueOrderCard({ order, onStatusChange, isActive = true }: Queue
           </Button>
           {isActive && (
             <Button
-              onClick={() => {
-                if (window.confirm(`Are you sure you want to cancel order #${order.trackingId}?`)) {
-                  onStatusChange(order.id, 'Cancelled');
-                }
-              }}
+              onClick={handleCancelOrder}
               fullWidth
               size="sm"
               variant="ghost"

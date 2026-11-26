@@ -140,8 +140,8 @@ export function QueueBoard() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <header className="shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="max-w-7xl 2xl:max-w-full mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
@@ -192,9 +192,9 @@ export function QueueBoard() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-auto p-6">
-        <div className="max-w-7xl 2xl:max-w-full mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <main className="min-h-0 flex-1 overflow-hidden p-6">
+        <div className="mx-auto h-full min-h-0 max-w-7xl 2xl:max-w-full">
+          <div className="flex h-full min-h-0 gap-6 overflow-x-auto overflow-y-hidden overscroll-x-contain 2xl:grid 2xl:grid-cols-5">
             <QueueColumn
               title="Received"
               status="Received"

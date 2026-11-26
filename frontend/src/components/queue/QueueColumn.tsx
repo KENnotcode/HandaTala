@@ -41,11 +41,11 @@ export function QueueColumn({
 
   return (
     <motion.div
-      className="flex-1 min-w-0 flex flex-col"
+      className="flex h-full min-h-0 w-[min(85vw,360px)] shrink-0 flex-col 2xl:w-auto 2xl:min-w-0"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <div className={cn('p-4 rounded-t-xl border-b', colorStyles[color], 'border')}>
+      <div className={cn('shrink-0 p-4 rounded-t-xl border-b', colorStyles[color], 'border')}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={cn('p-2 rounded-xl', colorStyles[color], textColors[color])}>
@@ -62,7 +62,7 @@ export function QueueColumn({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-3 space-y-3">
         {orders.length > 0 ? (
           orders.map((order) => (
             <QueueOrderCard

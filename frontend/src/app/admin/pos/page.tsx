@@ -72,6 +72,11 @@ export default function AdminPOSPage() {
 
   useEffect(() => {
     if (authLoading || !isAdmin) return;
+    void loadMenuItems();
+  }, [authLoading, isAdmin, loadMenuItems]);
+
+  useEffect(() => {
+    if (authLoading || !isAdmin) return;
 
     const refreshMenu = () => void loadMenuItems(false);
     window.addEventListener('focus', refreshMenu);
