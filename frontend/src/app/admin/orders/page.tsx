@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw, Download } from 'lucide-react';
-import { AdminSidebar } from '@/components/admin';
+import { AdminLayout } from '@/components/admin';
 import { OrderTable } from '@/components/admin';
 import { Button } from '@/components/ui';
 import { orderService } from '@/services/orderService';
@@ -114,9 +114,9 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AdminSidebar />
+      <AdminLayout>
       
-      <div className="lg:pl-64 flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen">
         <header className="sticky top-14 z-30 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 lg:top-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-3 py-3 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:py-0">
@@ -162,6 +162,7 @@ export default function AdminOrdersPage() {
           )}
         </main>
       </div>
+      </AdminLayout>
     </div>
   );
 }

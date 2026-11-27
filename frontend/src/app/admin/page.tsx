@@ -13,7 +13,7 @@ import {
   Clock,
   CreditCard
 } from 'lucide-react';
-import { AdminSidebar } from '@/components/admin';
+import { AdminLayout } from '@/components/admin';
 import { DashboardStat } from '@/components/admin';
 import { Button, Card, Badge } from '@/components/ui';
 import { orderService } from '@/services/orderService';
@@ -157,9 +157,9 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <AdminSidebar />
+      <AdminLayout>
       
-      <div className="min-h-screen min-w-0 flex flex-col lg:pl-64">
+      <div className="min-h-screen min-w-0 flex flex-col">
         <header className="sticky top-14 z-30 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-slate-900/95 lg:top-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-3 py-3 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:py-0">
@@ -302,6 +302,7 @@ export default function AdminDashboardPage() {
           )}
         </main>
       </div>
+      </AdminLayout>
     </div>
   );
 }

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { AdminSidebar } from '@/components/admin';
+import { AdminLayout } from '@/components/admin';
 import { Badge, Button, Card, Input, Modal } from '@/components/ui';
 import { menuService } from '@/services/menuService';
 import { useAuthStore } from '@/store/authStore';
@@ -245,8 +245,8 @@ export default function AdminMenuPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <AdminSidebar />
-      <div className="min-h-screen min-w-0 flex flex-col lg:pl-64">
+      <AdminLayout>
+      <div className="min-h-screen min-w-0 flex flex-col">
         <header className="sticky top-14 z-30 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95 lg:top-0">
           <div className="mx-auto flex min-h-20 max-w-7xl flex-col justify-center gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
             <div>
@@ -598,6 +598,8 @@ export default function AdminMenuPage() {
           </Button>
         </div>
       </Modal>
+    </div>
+    </AdminLayout>
     </div>
   );
 }

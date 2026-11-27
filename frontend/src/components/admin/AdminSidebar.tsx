@@ -13,7 +13,9 @@ import {
   LogOut,
   Menu,
   X,
-  CreditCard
+  CreditCard,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/ui';
@@ -28,7 +30,12 @@ const navigation = [
   { name: 'Queue', href: '/queue', icon: ChefHat },
 ];
 
-export function AdminSidebar() {
+type AdminSidebarProps = {
+  isCollapsed: boolean;
+  onToggleCollapsed: () => void;
+};
+
+export function AdminSidebar({ isCollapsed, onToggleCollapsed }: AdminSidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
   const router = useRouter();
@@ -82,17 +89,39 @@ export function AdminSidebar() {
       <aside
         id="admin-navigation-sidebar"
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[88vw] flex-col border-r border-gray-200 bg-white transition-transform duration-300 dark:border-gray-800 dark:bg-gray-900 lg:z-40 lg:w-64 lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[88vw] flex-col border-r border-gray-200 bg-white transition-all duration-300 dark:border-gray-800 dark:bg-gray-900 lg:z-40 lg:translate-x-0',
+          isCollapsed ? 'lg:w-20' : 'lg:w-64',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
-          <Link href="/admin" className="flex items-center gap-2">
+        <div className={cn(
+          'flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800',
+          isCollapsed && 'lg:justify-center lg:px-2',
+        )}>
+          <Link
+            href="/admin"
+            className={cn('flex items-center gap-2', isCollapsed && 'lg:hidden')}
+            title="HandaTala"
+          >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-600">
               <Utensils className="h-5 w-5 text-white" />
             </div>
-            <span className="whitespace-nowrap text-xl font-bold text-gray-900 dark:text-white">HandaTala</span>
+            <span className={cn(
+              'whitespace-nowrap text-xl font-bold text-gray-900 dark:text-white',
+              isCollapsed && 'lg:hidden',
+            )}>HandaTala</span>
           </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleCollapsed}
+            className={cn('hidden lg:flex', isCollapsed && 'lg:mx-auto')}
+            aria-label={isCollapsed ? 'Expand admin navigation' : 'Collapse admin navigation'}
+            aria-controls="admin-navigation-sidebar"
+            aria-expanded={!isCollapsed}
+          >
+            {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -113,25 +142,31 @@ export function AdminSidebar() {
                 href={item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-3 transition-colors',
+                  isCollapsed && 'lg:justify-center lg:px-2',
                   isActive
                     ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white',
                 )}
                 onClick={() => setIsMobileOpen(false)}
+                aria-label={item.name}
+                title={item.name}
               >
                 <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                <span className="whitespace-nowrap">{item.name}</span>
+                <span className={cn('whitespace-nowrap', isCollapsed && 'lg:hidden')}>{item.name}</span>
               </Link>
             );
           })}
         </nav>
 
         <div className="border-t border-gray-200 p-3 dark:border-gray-800">
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+          <div className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2',
+            isCollapsed && 'lg:justify-center lg:px-0',
+          )}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
               <Utensils className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             </div>
-            <div className="min-w-0">
+            <div className={cn('min-w-0', isCollapsed && 'lg:hidden')}>
               <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
                 {user?.name || 'Admin'}
               </p>
@@ -144,10 +179,12 @@ export function AdminSidebar() {
             variant="ghost"
             fullWidth
             onClick={handleLogout}
-            className="mt-2"
+            className={cn('mt-2', isCollapsed && 'lg:justify-center lg:px-2')}
+            aria-label="Sign Out"
+            title="Sign Out"
             leftIcon={<LogOut className="h-4 w-4" />}
           >
-            Sign Out
+            <span className={cn(isCollapsed && 'lg:hidden')}>Sign Out</span>
           </Button>
         </div>
       </aside>

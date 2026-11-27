@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { Plus, Minus, Trash2, CreditCard, Wallet, X, Search, CheckCircle } from 'lucide-react';
-import { AdminSidebar } from '@/components/admin';
+import { AdminLayout } from '@/components/admin';
 import { FoodCard } from '@/components/menu';
 import { Button, Badge, Card, Input, Modal } from '@/components/ui';
 import { orderService } from '@/services/orderService';
@@ -71,7 +71,10 @@ export default function AdminPOSPage() {
 
   useEffect(() => {
     if (authLoading || !isAdmin) return;
-    void loadMenuItems();
+    const timeoutId = window.setTimeout(() => {
+      void loadMenuItems();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [authLoading, isAdmin, loadMenuItems]);
 
   useEffect(() => {
@@ -213,9 +216,9 @@ export default function AdminPOSPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AdminSidebar />
+      <AdminLayout>
       
-      <div className="lg:pl-64 flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen">
         <header className="sticky top-14 z-30 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 lg:top-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-3 py-3 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:py-0">
@@ -527,6 +530,7 @@ export default function AdminPOSPage() {
           </Modal>
         )}
       </AnimatePresence>
+      </AdminLayout>
     </div>
   );
 }
